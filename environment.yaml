@@ -1,0 +1,10 @@
+name: env-example-repo
+channels:
+- conda-forge
+dependencies:
+- ca-certificates=2025.11.12
+- mkdocs=1.6.1
+- mkdocs-material=9.7.0
+- openssl=3.6.0
+- pymdown-extensions=10.17.2
+- python=3.14.0
