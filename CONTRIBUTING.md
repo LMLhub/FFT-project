@@ -2,7 +2,33 @@
 
 Thank you for your interest in contributing! We appreciate your help in improving this project. Please follow the guidelines below to ensure a smooth collaboration.
 
-## Getting Started
+ ## Summary of basic workflow
+The basic workflow is
+
+clone → create feature branch → push → open PR
+
+The steps (which are described in more detail below) are
+
+1. Clone the remote repo to create a local copy of the repo.
+
+2. Create feature branch from latest ```main```
+
+3. Work on your changes and test them locally.
+
+4. Before opening a pull request (PR) rebase your feature branch onto the remote ```main``` branch:
+```
+git fetch origin
+git rebase origin/main
+```
+
+5. Fix any conflicts which arise locally
+
+6. Push updated feature branch to the remote repo.
+
+7. Go to GitHub.com and open the PR proposing to merge your feature branch into main.
+
+
+## Getting Started and creating a feature branch
 
 1. **Clone the repository**: Run the following command to clone the repository to your local machine:
    ```sh
@@ -22,84 +48,75 @@ On your local machine:
    ```sh
    cd repository-name
    ```
-3. **Add the upstream repository** (only needed once):
-   ```sh
-   git remote add upstream https://github.com/original-author/repository-name.git
-   ```
-4. **Fetch the latest changes**:
-   ```sh
-   git fetch upstream
-   ```
-5. **Checkout the main branch** and update:
-   ```sh
-   git checkout main
-   git pull upstream main
-   ```
-6. **Replicate the required python environment on your local machine** (only needed once)
+
+3. **Replicate the required python environment on your local machine** (only needed once)
 ```sh
 conda env create --name env-test-repo --file=environment.yaml
 ```
 This assumes that you have conda (or better mamba) installed. IF not, you need
 to install that first.
 
-7. **Activate the python environment**
+4. **Activate the python environment**
 ```sh
 conda activate env-test-repo
 ```
 
-## Summary of main workflow
+5. **Create a feature branch**:
+Always create a new branch for your work. Do ***not*** commit directly to ```main```.
+   ```sh
+   git checkout -b feature/<short-description>
+   ```
+Often a feature will be associated with a particular issues listed in the "Issues" tab on GitHub.
+It is helpful to include the corresponding issue number in your feature branch name.
+For example if the issue number is 123 and requires adding a plot of f(x), you could name your
+feature branch as follows:
+  ```sh
+   git checkout -b feature/feat-123-add_fx_plot
+   ```
 
-1. Create feature branch from latest main
+6. **Make changes and commit**:
+Suppose you change the code in ```src/file1.py``` and ```docs/file3.py``` and the contents of the ```environment.yaml``` file.
+   ```sh
+   git add environment.yaml src/file1.opy docs/file3.py
+   git commit -m "Describe your change clearly"
+   ```
 
-2. Work on your changes and test them locally.
+7.  **Push your branch to the remote repository**
 
-3. Before opening a pull request (PR) rebase your feature branch onto the remotemain branch:
+At this point, your changes will be committed to your local copy of the repository.
+To transfer them to the remote copy of the repository, you create a copy of your local feature branch on the remote repository:
+```sh
+git push -u origin feature/<short-description>
 ```
-git fetch origin
-git rebase origin/main
+where ```feature/<short-description>``` is the name you gave to your local feature branch in step 5 above.
+
+## Keeping up-to-date
+
+### Keep you local copy of ```main``` up-to-date
+
+When creating a new feature branch from your local ```main``` branch (as in step 5 above) you need to make sure that you are branching from the most up-to-date version of the ```main``` branch - i.e. that you include any changes that have been submitted to ```main``` since you last copied the remote repo.
+To do this, you should periodically run:
+```sh
+git checkout main
+git pull
 ```
 
-4. Fix any conflicts which arise locally
+### Keep the shared python environment up-to-date
 
-5. Push updated feature branch to the remote repo.
+If add new packages while working on a feature, add the corresponding packages to the ```environment.yaml``` file and commit this file along with your changes.
 
-6. Go to GitHub.com and open the PR proposing to merge your feature branch into main.
+If your local python environment is missing some packages that have been added by someone else, you will need to update your conda environment from the latest```environment.yaml``` file:
+
+``` sh
+conda env update --file environment.yml --prune
+```
 
 
-## Creating a Feature Branch
-
-1. **Create a new branch for your feature or bugfix**:
-   ```sh
-   # 1. Switch to main
-   git checkout main
-
-   # 2. Fetch latest changes from the remote
-   git fetch origin
-
-   # 3. Update your local main to match remote main
-   git pull origin main
-
-   # 4. Create and switch to your new feature branch
-   git checkout -b feature-branch-name
-   ```
-   Use GitHub issues for feature tracking. Each new feature or bugfix should have
-   an associated GitHub Issue. Issues are assigned to team members. It is good
-   practice to name feature branches consistently with the associated issue.
-2. **Make your changes** and test them locally.
-3. **Commit your changes** with a meaningful message:
-   ```sh
-   git add .
-   git commit -m "Brief description of changes"
-   ```
-4. **Push your changes to your fork**:
-   ```sh
-   git push origin feature-branch-name
-   ```
 
 ## Creating a Pull Request
 
 A pull request is a request to merge the changes you have made and tested in
-your local feature branch back into the main branch. Before you start, make
+your local feature branch back into the remote main branch. Before you start, make
 sure you are on your local feature branch.
 
 1. Rebase your local feature branch on the most recent main:
