@@ -8,3 +8,4 @@ dependencies:
 - openssl=3.6.0
 - pymdown-extensions=10.17.2
 - python=3.14.0
+- numpy=2.3.5
