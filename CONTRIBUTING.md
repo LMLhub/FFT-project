@@ -108,7 +108,7 @@ If add new packages while working on a feature, add the corresponding packages t
 If your local python environment is missing some packages that have been added by someone else, you will need to update your conda environment from the latest```environment.yaml``` file:
 
 ``` sh
-conda env update --file environment.yml --prune
+conda env update --name your-env-name --file environment.yml --prune
 ```
 
 
