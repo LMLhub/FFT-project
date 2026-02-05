@@ -2,6 +2,7 @@
 """
 FFT Project - Workstream 2 Main Script
 """
+import sys
 
 def main():
   """
@@ -12,4 +13,4 @@ def main():
 
 if __name__ == "__main__":
   returncode = main()
-  exit(returncode)
+  sys.exit(returncode)
