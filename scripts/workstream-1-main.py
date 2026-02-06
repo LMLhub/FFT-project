@@ -2,9 +2,9 @@
 """
 FFT Project - Workstream 1 Main Script
 """
+from fft_project.config import read_dotenv, parse_args
 import sys
-from dotenv import load_dotenv
-import os
+
 
 def main():
   """
@@ -12,9 +12,8 @@ def main():
   """
   print("Starting Workstream 1 of the FFT Project...")
   # Load environment variables from .env file
-  load_dotenv()
-  # Example: Access an environment variable
-  REMOTE_DRIVE = os.getenv("REMOTE_DRIVE")
+  REMOTE_DRIVE = read_dotenv()
+
   print(f"Local location of shared remote drive: {REMOTE_DRIVE}")
   return 0
 

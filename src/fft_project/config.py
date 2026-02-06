@@ -1,0 +1,15 @@
+#src/fft_project/config.py
+
+def read_dotenv():
+    from dotenv import load_dotenv
+    import os
+
+    load_dotenv()
+    return os.getenv("REMOTE_DRIVE")
+
+def parse_args():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="FFT Project Configuration")
+    parser.add_argument("--config", type=str, default="config.yaml", help="Configuration file path")
+    return parser.parse_args()

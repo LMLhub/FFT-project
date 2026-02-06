@@ -9,3 +9,5 @@ dependencies:
 - python=3.14.0
 - numpy=2.3.5
 - python-dotenv=1.2.1
+pip:
+  - e .
