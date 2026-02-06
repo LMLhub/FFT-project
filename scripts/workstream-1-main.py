@@ -15,6 +15,11 @@ def main():
   REMOTE_DRIVE = read_dotenv()
 
   print(f"Local location of shared remote drive: {REMOTE_DRIVE}")
+
+  # Parse command-line arguments
+  args = parse_args()
+  print(f"Using configuration file: {args.config}")
+
   return 0
 
 if __name__ == "__main__":
