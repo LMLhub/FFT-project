@@ -5,7 +5,9 @@ def read_dotenv():
     import os
 
     load_dotenv()
-    return os.getenv("REMOTE_DRIVE")
+    return {
+        "REMOTE_DRIVE": os.getenv("REMOTE_DRIVE")
+    }
 
 def parse_args():
     import argparse
