@@ -12,7 +12,7 @@ def main():
   """
   print("Starting Workstream 1 of the FFT Project...")
   # Load environment variables from .env file
-  REMOTE_DRIVE = read_dotenv()
+  REMOTE_DRIVE = read_dotenv()["REMOTE_DRIVE"]
 
   print(f"Local location of shared remote drive: {REMOTE_DRIVE}")
 
