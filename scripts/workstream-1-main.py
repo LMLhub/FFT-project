@@ -6,18 +6,15 @@ import sys
 import logging
 from fft_project.config import read_dotenv, parse_args, read_config_file, setup_logging
 
-
-
 def main():
   """
   Main function for workstream 1 of the FFT project.
   """
 
-
-
   # Parse command-line arguments
   args = parse_args()
-  setup_logging(args.loglevel)
+  # Set up logging based on the provided log level
+  setup_logging(loglevel=args.loglevel)
   logging.info("Starting Workstream 1 of the FFT Project...")
   logging.info(f"Using configuration file: {args.config}")
 
@@ -28,6 +25,7 @@ def main():
   # Read config file
   config = read_config_file(args.config)
   logging.info(f"Configuration loaded: {config}")
+
   return 0
 
 if __name__ == "__main__":
