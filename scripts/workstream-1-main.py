@@ -2,7 +2,7 @@
 """
 FFT Project - Workstream 1 Main Script
 """
-from fft_project.config import read_dotenv, parse_args
+from fft_project.config import read_dotenv, parse_args, read_config_file
 import sys
 
 
@@ -19,6 +19,10 @@ def main():
   # Parse command-line arguments
   args = parse_args()
   print(f"Using configuration file: {args.config}")
+
+  # Read config file
+  config = read_config_file(args.config)
+  print(f"Configuration loaded: {config}")
 
   return 0
 
