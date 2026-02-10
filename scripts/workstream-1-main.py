@@ -2,8 +2,9 @@
 """
 FFT Project - Workstream 1 Main Script
 """
-from fft_project.config import read_dotenv, parse_args, read_config_file
 import sys
+from fft_project.config import read_dotenv, parse_args, read_config_file
+
 
 
 def main():
