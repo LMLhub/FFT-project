@@ -21,6 +21,7 @@ def parse_args():
                         default="INFO",
                         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
                         help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
+    parser.add_argument("--run-id", type=str, default=None, help="Unique identifier for this run (defaults to a timestamp)")
     return parser.parse_args()
 
 def read_config_file(config_path):
@@ -38,3 +39,10 @@ def setup_logging(loglevel="INFO"):
             logging.StreamHandler()
         ]
     )
+
+def setup_run_id(run_id=None):
+    import datetime
+    if run_id is None:
+        run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    logger.info(f"Run ID set to: {run_id}")
+    return run_id
