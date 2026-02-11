@@ -5,7 +5,7 @@ FFT Project - Workstream 1 Main Script
 import sys
 import logging
 from fft_project.config import read_dotenv, parse_args, read_config_file, setup_logging
-from fft_project.config import setup_run_id
+from fft_project.config import setup_run_id, setup_output_folders
 
 def main():
   """
@@ -29,6 +29,9 @@ def main():
 
   # Set up run ID
   config["run_id"] = setup_run_id(args.run_id)
+
+  # Set up output folders
+  setup_output_folders(REMOTE_DRIVE, config["run_id"])
 
   return 0
 
