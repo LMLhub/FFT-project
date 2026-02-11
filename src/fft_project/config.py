@@ -49,6 +49,11 @@ def setup_run_id(run_id=None):
 
 def setup_output_folders(remote_drive, run_id,):
     from pathlib import Path
+    # Check that remote_drive is not None or empty and log an error if it is
+    if not remote_drive:
+        logger.error("REMOTE_DRIVE environment variable is not set or is empty.")
+        raise ValueError("REMOTE_DRIVE environment variable is not set or is empty.")
+
     # Check that the path to the remote drive exists before trying to create the output folder
     remote_drive_path = Path(remote_drive)
     if not remote_drive_path.exists():

@@ -36,7 +36,27 @@ This is the current folder structure:
 To run the code
 
 ```
-python scripts/workstream-1-main.py --config config.yaml
+python scripts/workstream-1-main.py [options]]
+```
+
+### Options
+
+- `--config <file>` - Configuration file path (default: `config.yaml`)
+- `--loglevel <level>` - Set logging level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` (default: `INFO`)
+- `--run-id <id>` - Unique run identifier (default: auto-generated timestamp)
+
+## Output folder structure
+
+Each run creates its own folder in the location pointed to by REMOTE_DRIVE
+with the following structure
+
+```
+.
+└── run-id
+    ├── 1-inputs
+    ├── 2-generated-data
+    ├── 3-analysis
+    └── 4-visualizations
 ```
 ## Example
 
