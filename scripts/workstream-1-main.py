@@ -5,6 +5,7 @@ FFT Project - Workstream 1 Main Script
 import sys
 import logging
 from fft_project.config import read_dotenv, parse_args, read_config_file, setup_logging
+from fft_project.config import setup_run_id
 
 def main():
   """
@@ -25,6 +26,9 @@ def main():
   # Read config file
   config = read_config_file(args.config)
   logging.info(f"Configuration loaded: {config}")
+
+  # Set up run ID
+  config["run_id"] = setup_run_id(args.run_id)
 
   return 0
 
