@@ -46,3 +46,35 @@ def setup_run_id(run_id=None):
         run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     logger.info(f"Run ID set to: {run_id}")
     return run_id
+
+def setup_output_folders(remote_drive, run_id,):
+    from pathlib import Path
+    # Check that the path to the remote drive exists before trying to create the output folder
+    remote_drive_path = Path(remote_drive)
+    if not remote_drive_path.exists():
+        logger.error(f"Remote drive path does not exist: {remote_drive}")
+        raise FileNotFoundError(f"Remote drive path does not exist: {remote_drive}")
+
+    # Create string for output folder path
+    output_folder = f"{remote_drive}/{run_id}"
+    logger.info(f"Setting up output folder: {output_folder}")
+
+    # Check if folder already exists
+    output_path = Path(output_folder)
+    if output_path.exists():
+        logger.warning(f"Output folder already exists: {output_folder}")
+    else:
+        # Create output folder if it doesn't exist
+        output_path.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Successfully created output folder: {output_folder}")
+    # create subfolders
+    subfolders = ["1-inputs", "2-generated-data", "3-analysis", "4-visualizations"]
+    for subfolder in subfolders:
+        subfolder_path = output_path / subfolder
+        if not subfolder_path.exists():
+            subfolder_path.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Successfully created subfolder: {subfolder_path}")
+        else:
+            logger.warning(f"Subfolder already exists: {subfolder_path}")
+
+    return
