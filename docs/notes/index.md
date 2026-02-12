@@ -51,9 +51,9 @@ $$
 where $\tau \geq 0$ is a threshold to be learned as part of the tree construction.
 
 An exit then invokes the decision rule which checks the sign of the cue:
-```
+
 if $F(g^{(1)}, g^{(2)}, \mathcal{C}) > tau$
    $g^{(1)}$ is preferred
 else
    $g^{(2)}$ is preferred
-```
+
