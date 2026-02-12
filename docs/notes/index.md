@@ -30,7 +30,7 @@ where
 * $\mathcal{C}$ is contextual information e.g. the ranks of the fractals.
 
 These features can be continuous (e.g. Expected growth rate of $g^{(1)}$)
-or binary (e.g. "$g^{(1)}$ contains a fractal of rank 1, 2 or 3".)
+or binary (e.g. $g^{(1)}$ contains a fractal of rank 1, 2 or 3.)
 Define these 1-sided features so that they are
 
 * non-decreasing as option $g^{(1)}$ gets better
@@ -53,7 +53,10 @@ where $\tau \geq 0$ is a threshold to be learned as part of the tree constructio
 An exit then invokes the decision rule which checks the sign of the cue:
 
 if $F(g^{(1)}, g^{(2)}, \mathcal{C}) > \tau$
+
    $g^{(1)}$ is preferred
+
 else
+
    $g^{(2)}$ is preferred
 
