@@ -1,15 +1,16 @@
+import os
 import pandas as pd
 import itertools
 import random
  
-def simulate_gamble_data(f, exclude_nobrainer=True, mirror_gambles=True):
+def simulate_gamble_data(f, exclude_nobrainer=True, mirror_gambles=True, file_path=None):
     """
     Simulates all possible gamble pairs for a set of f fractals.
 
     Parameters:
     - f: number of fractals to be combined (assumed ordered in terms of rank)
-    - exclude_nobrainer: if True, exclude gamble pairs where one gamble is obviously dominating, i.e. (max(A) > max(B) 
-      and min(A) > min(B)) or (max(B) > max(A) and min(B) > min(A)),
+    - exclude_nobrainer: if True, exclude gamble pairs where one gamble is obviously dominating, 
+      i.e. (max(A) > max(B) and min(A) > min(B)) or (max(B) > max(A) and min(B) > min(A)),
       where A and B correspond to the value or rank of the gambles.
     - mirror_gambles: if True, includes both (A, B) and (B, A) for each gamble pair, effectively doubling the number of gambles
 
@@ -41,8 +42,8 @@ def simulate_gamble_data(f, exclude_nobrainer=True, mirror_gambles=True):
             maxA, minA = max(gA), min(gA)
             maxB, minB = max(gB), min(gB)
 
-            dominates_A = (maxA >= maxB) and (minA >= minB)
-            dominates_B = (maxB >= maxA) and (minB >= minA)
+            dominates_A = (maxA > maxB) and (minA > minB)
+            dominates_B = (maxB > maxA) and (minB > minA)
             if dominates_A or dominates_B:
                 continue
 
@@ -75,10 +76,19 @@ def simulate_gamble_data(f, exclude_nobrainer=True, mirror_gambles=True):
 
     df = pd.DataFrame(rows)
 
+    # Save to csv if file_path is provided
+    if file_path is not None:
+        file_name = "gamble_data.csv"
+        full_path = os.path.join(file_path, file_name)
+        df.to_csv(full_path, index=False)
+        print("Gamble data saved to:", full_path)
+    else:
+        print("No file path provided. Returning DataFrame.")
     return df
 
 def main():
-    print(pd.__version__)
+    df = simulate_gamble_data(9,True,False,"C:\\Users\\emili\\OneDrive\\Documents\\Heuristics\\test_folder")
+    print(len(df))
     return 0
 
 if __name__ == "__main__":
