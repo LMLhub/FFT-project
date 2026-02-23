@@ -5,3 +5,9 @@ factors:
   - 1.0
   - 0.5
   - 0.25
+#Gamble simulation parameters
+gamble_simulation:
+  f: 9
+  exclude_nobrainer: true
+  mirror_gambles: false
+  dynamic: additive
