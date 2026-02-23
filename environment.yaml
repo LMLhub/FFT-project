@@ -9,6 +9,7 @@ dependencies:
 - openssl=3.6.1
 - pymdown-extensions=10.17.2
 - numpy=2.3.5
+- pandas=3.0.0
 - python-dotenv=1.2.1
 - pip:
   - -e .
