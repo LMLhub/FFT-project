@@ -38,11 +38,11 @@ def main():
   # Save the config file to the output folder for record-keeping
 
   # Simulate gamble data
-  gamble_data_folder_path = f"{REMOTE_DRIVE}/{config['run_id']}/2-generated-data"
-  df = simulate_gamble_data(config["gamble_simulation"]["f"],
+  generated_data_folder_path = f"{REMOTE_DRIVE}/{config['run_id']}/2-generated-data"
+  df = simulate_gamble_data(config["gamble_simulation"]["fractals"],
                             config["gamble_simulation"]["exclude_nobrainer"],
                             config["gamble_simulation"]["mirror_gambles"],
-                            gamble_data_folder_path)
+                            generated_data_folder_path)
   logging.info(f"Simulated gamble data with {len(df)} rows.")
 
   return 0
