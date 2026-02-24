@@ -39,10 +39,13 @@ def main():
 
   # Simulate gamble data
   generated_data_folder_path = f"{REMOTE_DRIVE}/{config['run_id']}/2-generated-data"
-  df = simulate_gamble_data(config["gamble_simulation"]["fractals"],
+  df = simulate_gamble_data(config["gamble_simulation"]["n"],
+                            config["gamble_simulation"]["fractals"],
                             config["gamble_simulation"]["exclude_nobrainer"],
                             config["gamble_simulation"]["mirror_gambles"],
-                            generated_data_folder_path)
+                            config["gamble_simulation"]["random_draw"],
+                            generated_data_folder_path,
+                            config["gamble_simulation"]["random_seed"])
   logging.info(f"Simulated gamble data with {len(df)} rows.")
 
   return 0
