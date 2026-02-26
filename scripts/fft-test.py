@@ -4,6 +4,7 @@
 # This script can be deleted after the cue class testing is complete.
 
 from fft_project.cue_class import Cue
+from fft_project.decision_class import FFT
 import pandas as pd
 
 def main():
@@ -17,6 +18,13 @@ def main():
               description="A cue that evaluates expected values of the first gamble.",
               feature=example_feature, type="numerical", threshold=1, params={"multiplier": 2})
 
+    cue2 = Cue(id="ex2", name="Example Cue, multiplier 5",
+              description="A cue that evaluates expected values of the first gamble.",
+              feature=example_feature, type="numerical", threshold=0, params={"multiplier": 5})
+
+    
+    fft = FFT(id="fft1", name="Example FFT", description="An example FFT with two cues.", cues=[cue1, cue2])
+    
     # Create a sample gamble_data dataframe
     gamble_data = pd.DataFrame({
         "gamma_left_up": [10, 20],
@@ -26,11 +34,12 @@ def main():
     })
 
     # Evaluate the cue on the gamble_data
-    result = cue1.evaluate(gamble_data)
-    print(result)
-    print("Cue evaluation successful.")
-    print("Cue registry:", Cue.cue_registry)
-    #Cue.save_registry("cue_registry.yaml")
+    result = fft.decide(gamble_data)
+    print(result[['ex1_cue_value', 'ex1_side_if_true', 'ex2_cue_value', 'ex2_side_if_true','fft_decision', 'fft_cues_used']])
+    print("FFT evaluation successful.")
+    print("FFT registry:", FFT.FFT_registry)
+    #FFT.save_registry("fft_registry.yaml")
+
 
 if __name__ == "__main__":
     main() 
