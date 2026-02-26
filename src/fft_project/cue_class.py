@@ -1,40 +1,131 @@
 #This module defines the Cue class, which represents a single cue in a decision-making task.
+import pandas as pd
+import numpy as np
+import inspect
 
 class Cue:
-    "Cue class representing a single cue in a decision-making task."
-    "Cue can be either numerical or boolean (0,1), and has an associated evaluator function that determines how the cue is evaluated for a given gamble pair."
-    
-    def __init__(self, name: str, description: str, side_if_true: str, evaluator, params=None):
-        self.name = name #Unique identifier for the cue
+    '''
+    Cue class representing a single cue in a decision-making task.
+    Cue can be either numerical or boolean (0,1), and has an associated feature
+    function (f) that checks a certain feature of the gamble pair.
+    The difference in f(G1,G2) and f(G2,G1) determines the value of the signed cue (F).
+    The signed cue determines the preferred side for a given gamble pair if the cue value exceeds
+    a certain threshold. For boolean cues, the threshold is 0, meaning that any positive F value
+    favours the left gamble and any negative F value favours the right gamble. For numerical cues,
+    the threshold can be set to a specific value."
+    '''
+    def __init__(self,id: str, name: str, description: str, feature, type: "boolean", threshold=None, params=None):
+        self.id = id #Unique identifier for the cue
+        self.name = name #Short name of the cue
         self.description = description #Text description of the cue
-        self.type = "boolean" #"numerical" or "boolean"
-        self.evaluator = evaluator #function that takes a fractal pair and returns a function value
-        self.params = params #additional parameters for the evaluator function, if needed
+        self.type = type #"numerical" or "boolean"
+        self.feature = feature #feature function that takes a gamble pair and returns a value. Higher value favours first input gamble compared to second.
+        self.params = params or {} #additional parameters for the feature function. Must include "threshold" for numerical cues.
+        self.threshold = threshold
 
-    def evaluate(self, x):
+        if self.type not in ["boolean", "numerical"]:
+            raise ValueError("Cue type must be 'boolean' or 'numerical'.")
+        
+        # Boolean cues always use threshold = 0
+        if self.type == "boolean":
+            self.threshold = 0
+
+        # Numerical cues must provide threshold
+        if self.type == "numerical":
+            if self.threshold is None:
+                raise ValueError("Numerical cues require a threshold.")
+            if not isinstance(self.threshold, (int, float)):
+                raise TypeError("Threshold must be numeric.")   
+
+        # Check that feature is a callable function
+        if not callable(self.feature):
+            raise ValueError("Feature must be a callable function.")
+
+        #Check that type matches feature output?
+
+        # Check that feature parameters are provided as a dictionary
+        if self.params is not None and not isinstance(self.params, dict):
+            raise TypeError("Feature parameters must be a dictionary.")
+
+        # Check that feature function signature is as expected
+        sig = inspect.signature(self.feature)
+        param_names = list(sig.parameters.keys())
+        if len(param_names) < 4:
+            raise ValueError("Feature function must accept at least 4 arguments (fractal values).")
+
+        # Check that all feature parameters are provided in params
+        expected_params = set(param_names[4:])
+        provided_params = set(self.params.keys())
+
+        if expected_params != provided_params:
+            raise ValueError(
+                f"Feature parameters mismatch.\n"
+                f"Expected: {expected_params}\n"
+                f"Provided: {provided_params}"
+            )
+             
+
+    def evaluate(self, gamble_data: pd.DataFrame) -> pd.DataFrame:
         '''
         Parameters:
-        - x: a pd gamble row with fractal values. 
+        - gamble_data: a pd gamble row with fractal values. 
         
         Returns:
-        - cue_value: value of the cue for the given gamble pair.
+        - cue_value: value of the cue for the given gamble pair. The value is the
+          absolute value of the difference between the cue values for the left and right gambles.
         - side_if_true: the side cue favours is evaluated positively
         '''
-
-
-        value_left, value_right = self.evaluator(x_left, **self.params), self.evaluator(x_right, **self.params)
-        cue_difference = value_left - value_right
-        cue_value = abs(cue_difference)
-
-        if self.type == "boolean":
-            if cue_difference > 0:
-                side_if_true = "left"
-            elif cue_difference < 0:
-                side_if_true = "right"
-            else:
-                side_if_true = "na"
         
-        if self.type == "numerical":
-            side_if_true = "left" if cue_value >  else "right" if cue_value < 0 else "na"
+        # --- Basic checks ----
+        # Gamble data must be a dataframe
+        if not isinstance(gamble_data, pd.DataFrame):
+            raise ValueError("Input gamble_data must be a dataframe with gamble pairs.")
+        
+        #Gamble data must not be empty        
+        if len(gamble_data) == 0:
+            raise ValueError("Input gamble_data must not be empty.")
+        
+        #Gamble data must contain fractal value columns
+        required_cols = [
+        "gamma_left_up",
+        "gamma_left_down",
+        "gamma_right_up",
+        "gamma_right_down"
+        ]
 
-        return cue_value, side_if_true
+        missing_cols = [col for col in required_cols if col not in gamble_data.columns]
+        if missing_cols:
+            raise ValueError(f"Missing required columns: {missing_cols}")
+        
+        #-------------------
+        # Calculate feature values f(g1,g2) and f(g2,g1) for the left and right gambles, respectively.       
+        
+        f_LR = self.feature(gamble_data["gamma_left_up"],
+                            gamble_data["gamma_left_down"],
+                            gamble_data["gamma_right_up"],
+                            gamble_data["gamma_right_down"],
+                              **self.params)
+        
+        f_RL = self.feature(gamble_data["gamma_right_up"],
+                            gamble_data["gamma_right_down"],
+                            gamble_data["gamma_left_up"],
+                            gamble_data["gamma_left_down"], 
+                            **self.params)
+
+        F_value = f_LR - f_RL
+        cue_value = F_value.abs()
+        
+        # choose the side that the cue favours based on the F_value and the threshold
+        side_if_true = pd.Series(
+            np.where(
+                cue_value > self.threshold,
+                np.where(F_value > self.threshold, "left", "right"),
+                None),
+            dtype="string"
+        )
+        
+        #Save the cue value and the side it favours in the gamble_data dataframe
+        gamble_data[self.id + "_cue_value"] = cue_value
+        gamble_data[self.id + "_side_if_true"] = side_if_true
+        
+        return gamble_data
