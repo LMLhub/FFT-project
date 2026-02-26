@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import inspect
+import yaml
 
 class Cue:
     '''
@@ -14,6 +15,8 @@ class Cue:
     favours the left gamble and any negative F value favours the right gamble. For numerical cues,
     the threshold can be set to a specific value."
     '''
+    cue_registry = {}
+
     def __init__(self,id: str, name: str, description: str, feature, type: "boolean", threshold=None, params=None):
         self.id = id #Unique identifier for the cue
         self.name = name #Short name of the cue
@@ -41,8 +44,6 @@ class Cue:
         if not callable(self.feature):
             raise ValueError("Feature must be a callable function.")
 
-        #Check that type matches feature output?
-
         # Check that feature parameters are provided as a dictionary
         if self.params is not None and not isinstance(self.params, dict):
             raise TypeError("Feature parameters must be a dictionary.")
@@ -63,7 +64,33 @@ class Cue:
                 f"Expected: {expected_params}\n"
                 f"Provided: {provided_params}"
             )
-             
+        
+        #Check that the feature function can be executed with the expected arguments.
+        dummy = pd.Series([1, 2])
+
+        try:
+            test_output = self.feature(
+                dummy, dummy, dummy, dummy,**self.params)
+
+        except Exception as e:
+            raise ValueError(
+                f"Feature function for cue '{self.id}' could not be executed "
+                f"during initialization: {e}"
+            )
+
+        test_output = pd.Series(test_output)
+
+        #Check that the output of the feature function is numeric or boolean and matches the declared cue type.
+        if not (pd.api.types.is_numeric_dtype(test_output) and self.type == "numerical"):
+            if not (pd.api.types.is_bool_dtype(test_output) and self.type == "boolean"):
+                raise ValueError(
+                    f"Feature function for cue '{self.id}' does not match declared type '{self.type}'."
+                )
+        # Register the cue in the class-level registry
+        if self.id in Cue.cue_registry:
+            raise ValueError(f"Cue with id '{self.id}' already exists. IDs must be unique.")
+
+        Cue.cue_registry[self.id] = self
 
     def evaluate(self, gamble_data: pd.DataFrame) -> pd.DataFrame:
         '''
@@ -134,3 +161,25 @@ class Cue:
         gamble_data[self.id + "_side_if_true"] = side_if_true
         
         return gamble_data
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "type": self.type,
+            "threshold": self.threshold,
+            "params": self.params,
+            "feature_name": self.feature.__name__
+        }
+    
+    @classmethod
+    def save_registry(cls, filepath):
+        # This method saves the cue registry to a YAML file.
+        registry_dict = {
+            cue_id: cue.to_dict()
+            for cue_id, cue in cls.cue_registry.items()
+        }
+
+        with open(filepath, "w") as f:
+            yaml.dump(registry_dict, f, sort_keys=False)
