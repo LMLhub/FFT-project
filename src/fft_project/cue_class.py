@@ -17,7 +17,7 @@ class Cue:
     '''
     cue_registry = {}
 
-    def __init__(self,id: str, name: str, description: str, feature, type: "boolean", threshold=None, params=None):
+    def __init__(self,id: str, name: str, description: str, feature, type: str, threshold=None, params=None):
         self.id = id #Unique identifier for the cue
         self.name = name #Short name of the cue
         self.description = description #Text description of the cue
@@ -25,20 +25,6 @@ class Cue:
         self.feature = feature #feature function that takes a gamble pair and returns a value. Higher value favours first input gamble compared to second.
         self.params = params or {} #additional parameters for the feature function. Must include "threshold" for numerical cues.
         self.threshold = threshold
-
-        if self.type not in ["boolean", "numerical"]:
-            raise ValueError("Cue type must be 'boolean' or 'numerical'.")
-        
-        # Boolean cues always use threshold = 0
-        if self.type == "boolean":
-            self.threshold = 0
-
-        # Numerical cues must provide threshold
-        if self.type == "numerical":
-            if self.threshold is None:
-                raise ValueError("Numerical cues require a threshold.")
-            if not isinstance(self.threshold, (int, float)):
-                raise TypeError("Threshold must be numeric.")   
 
         # Check that feature is a callable function
         if not callable(self.feature):
@@ -86,6 +72,20 @@ class Cue:
                 raise ValueError(
                     f"Feature function for cue '{self.id}' does not match declared type '{self.type}'."
                 )
+        if self.type not in ["boolean", "numerical"]:
+            raise ValueError("Cue type must be 'boolean' or 'numerical'.")
+        
+        # Boolean cues always use threshold = 0
+        if self.type == "boolean":
+            self.threshold = 0
+
+        # Numerical cues must provide threshold
+        if self.type == "numerical":
+            if self.threshold is None:
+                raise ValueError("Numerical cues require a threshold.")
+            if not isinstance(self.threshold, (int, float)):
+                raise TypeError("Threshold must be numeric.")   
+            
         # Register the cue in the class-level registry
         if self.id in Cue.cue_registry:
             raise ValueError(f"Cue with id '{self.id}' already exists. IDs must be unique.")
