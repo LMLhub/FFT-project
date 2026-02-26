@@ -111,6 +111,11 @@ class Cue:
                             gamble_data["gamma_left_up"],
                             gamble_data["gamma_left_down"], 
                             **self.params)
+        
+        #Convert to float if boolean cue to ensure correct comparison with threshold
+        if self.type == "boolean":
+            f_LR = f_LR.astype(float)
+            f_RL = f_RL.astype(float)
 
         F_value = f_LR - f_RL
         cue_value = F_value.abs()
