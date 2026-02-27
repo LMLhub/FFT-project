@@ -35,7 +35,7 @@ def main():
 
     # Evaluate the cue on the gamble_data
     result = fft.decide(gamble_data)
-    print(result[['ex1_cue_value', 'ex1_side_if_true', 'ex2_cue_value', 'ex2_side_if_true','fft_decision', 'fft_cues_used']])
+    print(result)
     print("FFT evaluation successful.")
     print("FFT registry:", FFT.FFT_registry)
     #FFT.save_registry("fft_registry.yaml")
