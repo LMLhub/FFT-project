@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import pandas as pd
 import itertools
 import random
@@ -88,7 +88,7 @@ def all_valid_gambles(fractals, exclude_nobrainer=True, file_path=None):
     # Save to csv if file_path is provided
     if file_path is not None:
         file_name = "valid_gambles.csv"
-        full_path = os.path.join(file_path, file_name)
+        full_path = Path(file_path) / file_name
         df.to_csv(full_path, index=False)
         print("Gamble data saved to:", full_path)
     else:
@@ -150,7 +150,7 @@ def simulate_gamble_data(n,fractals,
     # Save to csv if file_path is provided
     if file_path is not None:
         file_name = "synthetic_gamble_data.csv"
-        full_path = os.path.join( file_path, file_name)
+        full_path = Path(file_path) / file_name
         sampled_df.to_csv(full_path, index=False)
         print("Synthetic gamble data saved to:", full_path)
     else:
