@@ -17,7 +17,8 @@ class Cue:
     '''
     cue_registry = {}
 
-    def __init__(self,id: str, name: str, description: str, feature, type: str, threshold=None, params=None):
+    def __init__(self,id: str, name: str, description: str, feature, type: str,
+                  threshold=None, params=None, required_columns=None):
         self.id = id #Unique identifier for the cue
         self.name = name #Short name of the cue
         self.description = description #Text description of the cue
@@ -25,6 +26,7 @@ class Cue:
         self.feature = feature #feature function that takes a gamble pair and returns a value. Higher value favours first input gamble compared to second.
         self.params = params or {} #additional parameters for the feature function. Must include "threshold" for numerical cues.
         self.threshold = threshold
+        self.required_columns = required_columns or []
 
         # Check that feature is a callable function
         if not callable(self.feature):
@@ -41,7 +43,7 @@ class Cue:
             raise ValueError("Feature function must accept at least 4 arguments (fractal values).")
 
         # Check that all feature parameters are provided in params
-        expected_params = set(param_names[4:])
+        expected_params = set(param_names[4+len(self.required_columns):])
         provided_params = set(self.params.keys())
 
         if expected_params != provided_params:
@@ -50,7 +52,7 @@ class Cue:
                 f"Expected: {expected_params}\n"
                 f"Provided: {provided_params}"
             )
-        
+        '''
         #Check that the feature function can be executed with the expected arguments.
         dummy = pd.Series([1, 2])
 
@@ -74,7 +76,7 @@ class Cue:
                 )
         if self.type not in ["boolean", "numerical"]:
             raise ValueError("Cue type must be 'boolean' or 'numerical'.")
-        
+        '''
         # Boolean cues always use threshold = 0
         if self.type == "boolean":
             self.threshold = 0
@@ -112,7 +114,7 @@ class Cue:
         if len(gamble_data) == 0:
             raise ValueError("Input gamble_data must not be empty.")
         
-        #Gamble data must contain fractal value columns
+        #Gamble data must contain fractal value and required columns
         required_cols = [
         "gamma_left_up",
         "gamma_left_down",
@@ -124,6 +126,18 @@ class Cue:
         if missing_cols:
             raise ValueError(f"Missing required columns: {missing_cols}")
         
+        #Save extra columns for use in feature function if needed.
+        extra_args = {col: gamble_data[col] for col in self.required_columns }
+
+        missing_extra = [
+            col for col in self.required_columns
+            if col not in gamble_data.columns]
+
+        if missing_extra:
+            raise ValueError(
+                f"Cue '{self.id}' requires missing columns: {missing_extra}"
+            )
+        
         #-------------------
         # Calculate feature values f(g1,g2) and f(g2,g1) for the left and right gambles, respectively.       
         
@@ -131,12 +145,14 @@ class Cue:
                             gamble_data["gamma_left_down"],
                             gamble_data["gamma_right_up"],
                             gamble_data["gamma_right_down"],
-                              **self.params)
+                            **extra_args, 
+                            **self.params)
         
         f_RL = self.feature(gamble_data["gamma_right_up"],
                             gamble_data["gamma_right_down"],
                             gamble_data["gamma_left_up"],
                             gamble_data["gamma_left_down"], 
+                            **extra_args,
                             **self.params)
         
         #Convert to float if boolean cue to ensure correct comparison with threshold
