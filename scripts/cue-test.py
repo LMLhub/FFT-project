@@ -26,7 +26,8 @@ def main():
         feature= growth_rate,
         type="numerical",
         threshold=10,
-        params={"dynamic": "multiplicative"}
+        params={"dynamic": "multiplicative"},
+        required_columns=["wealth"]
     )
 
     c02 = Cue(
@@ -36,11 +37,13 @@ def main():
         feature= growth_rate,
         type="numerical",
         threshold=0,
-        params={"dynamic": "additive"}
+        params={"dynamic": "additive"},
+        required_columns=["wealth"]
     )
 
 # Create a sample gamble_data dataframe
     gamble_data = pd.DataFrame({
+        "wealth": [100, 200],
         "gamma_left_up": [10, 20],
         "gamma_left_down": [10, 15],
         "gamma_right_up": [12, 18],
@@ -49,7 +52,7 @@ def main():
 
     # Evaluate the cue on the gamble_data
     result = c01.evaluate(gamble_data)
-    #result = c02.evaluate(result)
+    result = c02.evaluate(result)
     print(result)
     print("Cue evaluation successful.")
     print("Cue registry:", Cue.cue_registry)
