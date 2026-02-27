@@ -4,6 +4,7 @@
 # This script can be deleted after the cue class testing is complete.
 
 from fft_project.cue_class import Cue
+from fft_project.cue_features import growth_rate
 import pandas as pd
 
 def main():
@@ -13,11 +14,32 @@ def main():
         return ev_left * multiplier
 
     # Create a Cue instance
-    cue1 = Cue(id="ex1", name="Example Cue, multiplier 2",
+    '''cue1 = Cue(id="ex1", name="Example Cue, multiplier 2",
               description="A cue that evaluates expected values of the first gamble.",
               feature=example_feature, type="numerical", threshold=1, params={"multiplier": 2})
+    '''
+    
+    c01 = Cue(
+        id="c01",
+        name="Growth Rate - multiplicative dynamic",
+        description="A cue that evaluates the multiplicative growth rate of the left gamble.",
+        feature= growth_rate,
+        type="numerical",
+        threshold=10,
+        params={"dynamic": "multiplicative"}
+    )
 
-    # Create a sample gamble_data dataframe
+    c02 = Cue(
+        id="c02",
+        name="Growth Rate - additive dynamic",
+        description="A cue that evaluates the additive growth rate of the left gamble.",
+        feature= growth_rate,
+        type="numerical",
+        threshold=0,
+        params={"dynamic": "additive"}
+    )
+
+# Create a sample gamble_data dataframe
     gamble_data = pd.DataFrame({
         "gamma_left_up": [10, 20],
         "gamma_left_down": [10, 15],
@@ -26,7 +48,8 @@ def main():
     })
 
     # Evaluate the cue on the gamble_data
-    result = cue1.evaluate(gamble_data)
+    result = c01.evaluate(gamble_data)
+    #result = c02.evaluate(result)
     print(result)
     print("Cue evaluation successful.")
     print("Cue registry:", Cue.cue_registry)
