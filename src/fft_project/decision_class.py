@@ -46,57 +46,81 @@ class FFT:
 
         with open(filepath, "w") as f:
             yaml.dump(registry_dict, f, sort_keys=False)
-        
 
-    def decide(self, gamble_data: pd.DataFrame) -> pd.DataFrame:
-        # This method evaluates the cues in the FFT on the given gamble_data and makes a decision
-        # based on the cue values and thresholds. It returns the gamble_data dataframe with
-        # additional columns for each cue's value and the side it favors if the cue is true.
-        
-        df = gamble_data.copy()
-
-        n = len(df)
-
-        # Store final decision per row
-        decision = pd.Series([None] * n, index=df.index, dtype="object")
-
-        # Store how many cues were evaluated per row
-        cues_used = pd.Series(0, index=df.index)
-
-        # Mask for rows that are still undecided
-        undecided = pd.Series(True, index=df.index)
+    def decide(self, x_left_up, x_left_down, x_right_up, x_right_down, **kwargs):
+        # This method evaluates the cues in the FFT on the given input and makes a decision
+        # based on the cue values and thresholds. It returns the decision ("left" or "right") and the number of cues used.
+        cue_values = []
 
         for i, cue in enumerate(self.cues, start=1):
+            # Determine which extra arguments this cue needs
+            extra_arg_names = cue.required_args[4:]
 
-            # Evaluate cue (adds cue columns to df)
-            df = cue.evaluate(df)
+            # Filter kwargs to only those required by this cue
+            filtered_kwargs = {
+                key: kwargs[key]
+                for key in extra_arg_names
+                if key in kwargs
+            }
 
-            side_col = cue.id + "_side_if_true"
+            #Evalue each cue and get the cue value and the side it favors if the cue is true
+            cue_value, side = cue.evaluate(
+                x_left_up,
+                x_left_down,
+                x_right_up,
+                x_right_down,
+                **filtered_kwargs)
 
-            # Rows where this cue gives a decision
-            decides_here = undecided & df[side_col].notna()
+            #Append cue value to list of cue values
+            cue_values.append(cue_value)
 
-            # Assign decision
-            decision.loc[decides_here] = df.loc[decides_here, side_col]
+            # If this cue makes a decision, stop
+            if side is not None:
+                return cue_values, side, i
 
-            # Count cue usage for rows still undecided
-            cues_used.loc[undecided] += 1
+        # If no cue makes a decision, return random choice and the number of cues used +1
+        i = len(cue_values) + 1 
+        side = np.random.choice(["left", "right"])
+        
+        return cue_values, side, i
+
+
+    def decide_df(self, gamble_data: pd.DataFrame, required_args = list ) -> pd.DataFrame:
+        # This method evaluates the cues in the FFT on the given gamble_data and makes a decision
+        # It returns the gamble_data dataframe with additional columns for each cue's value and the 
+        # side it favors if the cue is true, as well as the final decision and number of cues used.
+        # required_args must contain four fractal values + extra arguments used by cues.
+        
+        # Prepare storage for final decision and number of cues used        
+        df = gamble_data.copy()
+        df["fft_decision"] = None
+        df["fft_cues_used"] = 0
+
+        # Process row by row
+        for idx, row in df.iterrows():
+            # Extract the four main fractals
+            x_left_up = row[required_args[0]]
+            x_left_down = row[required_args[1]]
+            x_right_up = row[required_args[2]]
+            x_right_down = row[required_args[3]]
+
+            # Extract any additional required arguments
+            extra_arg_names = required_args[4:]
+            extra_args = {arg: row[arg] for arg in extra_arg_names}
+
+            cue_values, side, cues_used = self.decide(
+                x_left_up,
+                x_left_down,
+                x_right_up,
+                x_right_down,
+                **extra_args
+            )
             
-            # For rows already decided BEFORE this cue,
-            # mark this cue column as "-"
-            df.loc[~undecided, side_col] = "-"
-            
-            # Update undecided mask
-            undecided = undecided & df[side_col].isna()
+            #Save cue values in df
+            for i in range(len(cue_values)):
+                df.loc[idx, f"{self.cues[i].id}_cue_value"] = cue_values[i]
 
-        # Handle rows never decided
-        if undecided.any():
-            # Example fallback: random
-            random_choice = np.random.choice(["left", "right"], size=undecided.sum())
-            decision.loc[undecided] = random_choice
-            cues_used.loc[undecided] = self.tree_length+1  # All cues were used - plus one for the random decision
-
-        df["fft_decision"] = decision
-        df["fft_cues_used"] = cues_used
-
+            df.loc[idx, f"{self.id}_decision"] = side
+            df.loc[idx, f"{self.id}_cues_used"] = cues_used
+        
         return df
