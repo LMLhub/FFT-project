@@ -121,7 +121,7 @@ class Cue:
         pd.DataFrame
             Copy of df with two new columns:
             - '<cue_id>_value'
-            - '<cue_id>_side'
+            - '<cue_id>_side_if_true'
         """
 
         # Ensure all required columns exist
@@ -134,6 +134,9 @@ class Cue:
         extra_arg_names = self.required_args[4:]
 
         def evaluate_row(row):
+            # This function evaluates the cue for a single row of the DataFrame. 
+            # It extracts the required arguments from the row and passes them to the evaluate method.
+
             # Extract the four mandatory gamble values
             x_left_up = row[base_args[0]]
             x_left_down = row[base_args[1]]
@@ -151,12 +154,12 @@ class Cue:
                 **extra_args
             )
 
-        # Apply row-wise
+        # Evaluate cue row-wise
         results = gamble_data.apply(evaluate_row, axis=1)
 
         # Split tuple output into two columns
         gamble_data[f"{self.id}_value"] = results.apply(lambda x: x[0])
-        gamble_data[f"{self.id}_side"] = results.apply(lambda x: x[1])
+        gamble_data[f"{self.id}_side_if_true"] = results.apply(lambda x: x[1])
 
         return gamble_data
         
