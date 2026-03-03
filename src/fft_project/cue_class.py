@@ -18,15 +18,15 @@ class Cue:
     cue_registry = {}
 
     def __init__(self,id: str, name: str, description: str, feature, type: str,
-                  threshold=None, params=None, required_columns=None):
+                  threshold=None, params=None, required_args = list):
         self.id = id #Unique identifier for the cue
         self.name = name #Short name of the cue
         self.description = description #Text description of the cue
         self.type = type #"numerical" or "boolean"
         self.feature = feature #feature function that takes a gamble pair and returns a value. Higher value favours first input gamble compared to second.
-        self.params = params or {} #additional parameters for the feature function. Must include "threshold" for numerical cues.
-        self.threshold = threshold
-        self.required_columns = required_columns or []
+        self.params = params or {} #additional parameters for the feature function.
+        self.threshold = threshold #threshold for numerical cues. For boolean cues, threshold is set to 0.
+        self.required_args = required_args #List of required input for the feature function. These first four are fractal values (outcome or rank) that are passed as the first four arguments to the feature function. The order of these columns must be specified in the same order as they are passed to the feature function (i.e. x_left_up, x_left_down, x_right_up, x_right_down, wealth, ect).
 
         # Check that feature is a callable function
         if not callable(self.feature):
@@ -39,11 +39,11 @@ class Cue:
         # Check that feature function signature is as expected
         sig = inspect.signature(self.feature)
         param_names = list(sig.parameters.keys())
-        if len(param_names) < 4:
-            raise ValueError("Feature function must accept at least 4 arguments (fractal values).")
-
+        if len(param_names) != len(self.params) + len(self.required_args) :
+            raise ValueError(f"Feature function input mismatch: declared arguments ({len(param_names)}) and parameters ({len(self.params)}) do not add up to the total input to the feature function ({len(param_names)}).")
+                               
         # Check that all feature parameters are provided in params
-        expected_params = set(param_names[4+len(self.required_columns):])
+        expected_params = set(param_names[len(self.required_args):])
         provided_params = set(self.params.keys())
 
         if expected_params != provided_params:
@@ -52,31 +52,7 @@ class Cue:
                 f"Expected: {expected_params}\n"
                 f"Provided: {provided_params}"
             )
-        '''
-        #Check that the feature function can be executed with the expected arguments.
-        dummy = pd.Series([1, 2])
 
-        try:
-            test_output = self.feature(
-                dummy, dummy, dummy, dummy,**self.params)
-
-        except Exception as e:
-            raise ValueError(
-                f"Feature function for cue '{self.id}' could not be executed "
-                f"during initialization: {e}"
-            )
-
-        test_output = pd.Series(test_output)
-
-        #Check that the output of the feature function is numeric or boolean and matches the declared cue type.
-        if not (pd.api.types.is_numeric_dtype(test_output) and self.type == "numerical"):
-            if not (pd.api.types.is_bool_dtype(test_output) and self.type == "boolean"):
-                raise ValueError(
-                    f"Feature function for cue '{self.id}' does not match declared type '{self.type}'."
-                )
-        if self.type not in ["boolean", "numerical"]:
-            raise ValueError("Cue type must be 'boolean' or 'numerical'.")
-        '''
         # Boolean cues always use threshold = 0
         if self.type == "boolean":
             self.threshold = 0
@@ -94,90 +70,96 @@ class Cue:
 
         Cue.cue_registry[self.id] = self
 
-    def evaluate(self, gamble_data: pd.DataFrame) -> pd.DataFrame:
+    
+    def evaluate(self, x_left_up, x_left_down, x_right_up, x_right_down, **extra_args):
         '''
-        Parameters:
-        - gamble_data: a pd gamble row with fractal values. 
-        
+        Evaluates the cue for a given gamble pair based on the feature function and the threshold.
+        Input:
+        - four fractal values, either outcome or rank.
+        - additional arguments for the feature function if needed, which can be passed as columns in the gamble_data dataframe when using the evaluate_pd method. These are specified in the required_columns attribute of the Cue object.
         Returns:
         - cue_value: value of the cue for the given gamble pair. The value is the
-          absolute value of the difference between the cue values for the left and right gambles.
-        - side_if_true: the side cue favours is evaluated positively
+          absolute value of the difference between the feature values for the left and right gambles.
+        - side_if_true: the side the cue favours if evaluated positively
         '''
-        
-        # --- Basic checks ----
-        # Gamble data must be a dataframe
-        if not isinstance(gamble_data, pd.DataFrame):
-            raise ValueError("Input gamble_data must be a dataframe with gamble pairs.")
-        
-        #Gamble data must not be empty        
-        if len(gamble_data) == 0:
-            raise ValueError("Input gamble_data must not be empty.")
-        
-        #Gamble data must contain fractal value and required columns
-        required_cols = [
-        "gamma_left_up",
-        "gamma_left_down",
-        "gamma_right_up",
-        "gamma_right_down"
-        ]
+        f_LR = self.feature(x_left_up, x_left_down, x_right_up, x_right_down, **extra_args, **self.params)
+        f_RL = self.feature(x_right_up, x_right_down, x_left_up, x_left_down, **extra_args, **self.params)
 
-        missing_cols = [col for col in required_cols if col not in gamble_data.columns]
-        if missing_cols:
-            raise ValueError(f"Missing required columns: {missing_cols}")
-        
-        #Save extra columns for use in feature function if needed.
-        extra_args = {col: gamble_data[col] for col in self.required_columns }
-
-        missing_extra = [
-            col for col in self.required_columns
-            if col not in gamble_data.columns]
-
-        if missing_extra:
-            raise ValueError(
-                f"Cue '{self.id}' requires missing columns: {missing_extra}"
-            )
-        
-        #-------------------
-        # Calculate feature values f(g1,g2) and f(g2,g1) for the left and right gambles, respectively.       
-        
-        f_LR = self.feature(gamble_data["gamma_left_up"],
-                            gamble_data["gamma_left_down"],
-                            gamble_data["gamma_right_up"],
-                            gamble_data["gamma_right_down"],
-                            **extra_args, 
-                            **self.params)
-        
-        f_RL = self.feature(gamble_data["gamma_right_up"],
-                            gamble_data["gamma_right_down"],
-                            gamble_data["gamma_left_up"],
-                            gamble_data["gamma_left_down"], 
-                            **extra_args,
-                            **self.params)
-        
-        #Convert to float if boolean cue to ensure correct comparison with threshold
         if self.type == "boolean":
-            f_LR = f_LR.astype(float)
-            f_RL = f_RL.astype(float)
+            f_LR = float(f_LR)
+            f_RL = float(f_RL)
 
         F_value = f_LR - f_RL
-        cue_value = F_value.abs()
-        
-        # choose the side that the cue favours based on the F_value and the threshold
-        side_if_true = pd.Series(
-            np.where(
-                cue_value > self.threshold,
-                np.where(F_value > self.threshold, "left", "right"),
-                None),
-            dtype="string"
-        )
-        
-        #Save the cue value and the side it favours in the gamble_data dataframe
-        gamble_data[self.id + "_cue_value"] = cue_value
-        gamble_data[self.id + "_side_if_true"] = side_if_true
-        
+        cue_value = abs(F_value)
+
+        if cue_value > self.threshold:
+            side_if_true = "left" if F_value > self.threshold else "right"
+        else:
+            side_if_true = None
+
+        return cue_value, side_if_true
+            
+    import pandas as pd
+
+    def evaluate_df(self, gamble_data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Evaluates the cue for each row in a pandas DataFrame.
+
+        The first four names in self.required_args must correspond to:
+        x_left_up, x_left_down, x_right_up, x_right_down.
+
+        Any additional names in required_args are passed as extra arguments
+        to the feature function.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            DataFrame containing the required columns.
+
+        Returns
+        -------
+        pd.DataFrame
+            Copy of df with two new columns:
+            - '<cue_id>_value'
+            - '<cue_id>_side'
+        """
+
+        # Ensure all required columns exist
+        missing_cols = set(self.required_args) - set(gamble_data.columns)
+        if missing_cols:
+            raise ValueError(f"Missing required columns in DataFrame: {missing_cols}")
+
+        # Split required arguments
+        base_args = self.required_args[:4]
+        extra_arg_names = self.required_args[4:]
+
+        def evaluate_row(row):
+            # Extract the four mandatory gamble values
+            x_left_up = row[base_args[0]]
+            x_left_down = row[base_args[1]]
+            x_right_up = row[base_args[2]]
+            x_right_down = row[base_args[3]]
+
+            # Extract any additional required arguments
+            extra_args = {arg: row[arg] for arg in extra_arg_names}
+
+            return self.evaluate(
+                x_left_up,
+                x_left_down,
+                x_right_up,
+                x_right_down,
+                **extra_args
+            )
+
+        # Apply row-wise
+        results = gamble_data.apply(evaluate_row, axis=1)
+
+        # Split tuple output into two columns
+        gamble_data[f"{self.id}_value"] = results.apply(lambda x: x[0])
+        gamble_data[f"{self.id}_side"] = results.apply(lambda x: x[1])
+
         return gamble_data
-    
+        
     def to_dict(self):
         return {
             "id": self.id,
@@ -186,7 +168,8 @@ class Cue:
             "type": self.type,
             "threshold": self.threshold,
             "params": self.params,
-            "feature_name": self.feature.__name__
+            "feature_name": self.feature.__name__,
+            "required arguments": self.required_args
         }
     
     @classmethod

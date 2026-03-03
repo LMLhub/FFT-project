@@ -4,56 +4,57 @@
 # This script can be deleted after the cue class testing is complete.
 
 from fft_project.cue_class import Cue
-from fft_project.cue_features import growth_rate
+from fft_project.cue_features import growth_rate, expected_isoelastic_utility
 import pandas as pd
 
 def main():
-    # Example feature function that calculates the expected value of the first gamble multiplied by some parameter
-    def example_feature(gamma_left_up, gamma_left_down, gamma_right_up, gamma_right_down, multiplier=1):
-        ev_left = (gamma_left_up + gamma_left_down) / 2
-        return ev_left * multiplier
-
-    # Create a Cue instance
-    '''cue1 = Cue(id="ex1", name="Example Cue, multiplier 2",
-              description="A cue that evaluates expected values of the first gamble.",
-              feature=example_feature, type="numerical", threshold=1, params={"multiplier": 2})
-    '''
-    
+    # Example cue definition
     c01 = Cue(
         id="c01",
-        name="Growth Rate - multiplicative dynamic",
-        description="A cue that evaluates the multiplicative growth rate of the left gamble.",
-        feature= growth_rate,
+        name="Expected Isoelastic Utility - eta=1.5, additive",
+        description="This cue that evaluates the expected isoelastic utility of the first gamble with eta=1.8 and picks a side if the cue value is greater than 2.",
+        feature= expected_isoelastic_utility,
         type="numerical",
-        threshold=10,
-        params={"dynamic": "multiplicative"},
-        required_columns=["wealth"]
+        threshold=0,
+        params={"dynamic": "additive",
+                "eta": 1.5},
+        required_args=["output_left_up", "output_left_down", "output_right_up", "output_right_down", "wealth"]
     )
 
     c02 = Cue(
         id="c02",
-        name="Growth Rate - additive dynamic",
-        description="A cue that evaluates the additive growth rate of the left gamble.",
+        name="Growth Rate - additive",
+        description="This cue compares the additive growth rates of the gambles and picks the side with the highest rate.",
         feature= growth_rate,
         type="numerical",
         threshold=0,
         params={"dynamic": "additive"},
-        required_columns=["wealth"]
+        required_args=["output_left_up", "output_left_down", "output_right_up", "output_right_down"]
     )
 
 # Create a sample gamble_data dataframe
     gamble_data = pd.DataFrame({
-        "wealth": [100, 200],
-        "gamma_left_up": [10, 20],
-        "gamma_left_down": [10, 15],
-        "gamma_right_up": [12, 18],
-        "gamma_right_down": [8, 14]
+        "wealth": [1000, 2000],
+        "output_left_up": [100, 200],
+        "output_left_down": [100, 150],
+        "output_right_up": [120, 180],
+        "output_right_down": [80, 140]
     })
-
-    # Evaluate the cue on the gamble_data
-    result = c01.evaluate(gamble_data)
-    result = c02.evaluate(result)
-    print(result)
+    
+    # Test evaluate method on the first row of gamble_data
+    x1_1, x1_2, x2_1, x2_2, wealth = gamble_data.loc[0, ["output_left_up", "output_left_down", "output_right_up", "output_right_down", "wealth"]]
+    
+    cue_value_1, side_if_true_1 = c01.evaluate(x1_1, x1_2, x2_1, x2_2, wealth=wealth)
+    cue_value_2, side_if_true_2 = c02.evaluate(x1_1, x1_2, x2_1, x2_2)
+    
+    # Test evaluate_pd method on the gamble_data
+    result_1 = c01.evaluate_df(gamble_data)
+    result_2 = c02.evaluate_df(gamble_data)
+    
+    print(f'Cue value 1: {cue_value_1}, side_if_true 1: {side_if_true_1}')
+    print(f'Cue value 2: {cue_value_2}, side_if_true 2: {side_if_true_2}')
+    print(result_1)
+    print(result_2)
     print("Cue evaluation successful.")
     print("Cue registry:", Cue.cue_registry)
     #Cue.save_registry("cue_registry.yaml")
