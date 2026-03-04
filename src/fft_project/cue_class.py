@@ -70,7 +70,7 @@ class Cue:
 
         Cue.cue_registry[self.id] = self
 
-    
+
     def evaluate(self, x_left_up, x_left_down, x_right_up, x_right_down, **extra_args):
         '''
         Evaluates the cue for a given gamble pair based on the feature function and the threshold.
