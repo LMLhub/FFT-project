@@ -7,7 +7,10 @@ import logging
 from fft_project.simulation_gamble_data import simulate_gamble_data
 from fft_project.config import read_dotenv, parse_args, read_config_file, setup_logging
 from fft_project.config import setup_run_id, setup_output_folders, save_config
+<<<<<<< HEAD
 from fft_project.simulation_gamble_data import simulate_gamble_data
+=======
+>>>>>>> 156e64f (Save config.yaml to run output folder (closes #19))
 
 def main():
   """
@@ -38,6 +41,7 @@ def main():
   # Save config file to the run's input folder
   save_config(args.config, REMOTE_DRIVE, config["run_id"])
 
+<<<<<<< HEAD
   # Simulate gamble data
   generated_data_folder_path = f"{REMOTE_DRIVE}/{config['run_id']}/2-generated-data"
   df = simulate_gamble_data(config["gamble_simulation"]["n"],
@@ -49,6 +53,8 @@ def main():
                             config["gamble_simulation"]["random_seed"])
   logging.info(f"Simulated gamble data with {len(df)} rows.")
 
+=======
+>>>>>>> 156e64f (Save config.yaml to run output folder (closes #19))
   return 0
 
 if __name__ == "__main__":
