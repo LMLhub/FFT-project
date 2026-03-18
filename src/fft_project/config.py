@@ -83,3 +83,17 @@ def setup_output_folders(remote_drive, run_id,):
             logger.warning(f"Subfolder already exists: {subfolder_path}")
 
     return
+
+
+def save_config(config_path, remote_drive, run_id):
+    """
+    Copies the config file used for a run to the run's 1-inputs folder,
+    so it is clear what settings were used when the run was executed.
+    """
+    import shutil
+    from pathlib import Path
+
+    # Build the destination path inside the run's 1-inputs subfolder
+    destination = Path(remote_drive) / run_id / "1-inputs" / "config.yaml"
+    shutil.copy(config_path, destination)
+    logger.info(f"Config file saved to: {destination}")
