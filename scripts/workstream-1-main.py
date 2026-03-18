@@ -6,7 +6,7 @@ import sys
 import logging
 from fft_project.simulation_gamble_data import simulate_gamble_data
 from fft_project.config import read_dotenv, parse_args, read_config_file, setup_logging
-from fft_project.config import setup_run_id, setup_output_folders
+from fft_project.config import setup_run_id, setup_output_folders, save_config
 from fft_project.simulation_gamble_data import simulate_gamble_data
 
 def main():
@@ -35,7 +35,8 @@ def main():
   # Set up output folders
   setup_output_folders(REMOTE_DRIVE, config["run_id"])
 
-  # Save the config file to the output folder for record-keeping
+  # Save config file to the run's input folder
+  save_config(args.config, REMOTE_DRIVE, config["run_id"])
 
   # Simulate gamble data
   generated_data_folder_path = f"{REMOTE_DRIVE}/{config['run_id']}/2-generated-data"
