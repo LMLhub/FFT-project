@@ -12,7 +12,7 @@ def main():
     c01 = Cue(
         id="c01",
         name="Expected Isoelastic Utility - eta=1.5, additive",
-        description="This cue that evaluates the expected isoelastic utility of the first gamble with eta=1.8 and picks a side if the cue value is greater than 2.",
+        description="This cue that evaluates the expected isoelastic utility of the first gamble with eta=1.5 and picks a side if the cue value is greater than 0.",
         feature= expected_isoelastic_utility,
         type="numerical",
         threshold=0,
