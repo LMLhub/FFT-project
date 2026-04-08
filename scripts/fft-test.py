@@ -1,7 +1,7 @@
-# This is a test script for the Cue class.
-# It creates an instance of the Cue class, evaluates it on some sample gamble data,
+# This is a test script for the FFT class.
+# It creates an instance of the Cue class and FFT class, evaluates it on some sample gamble data,
 # and prints the results.
-# This script can be deleted after the cue class testing is complete.
+# This script can be deleted after the FFT class testing is complete.
 
 from fft_project.cue_class import Cue
 from fft_project.decision_class import FFT

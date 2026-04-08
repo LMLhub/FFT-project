@@ -1,4 +1,8 @@
-#This module defines the Decision class, which represents a fast-and-frugal tree (FFT) for decision-making tasks. The FFT consists of a sequence of cues that are evaluated in order to make a decision between two options (e.g., left vs right gamble). The Decision class includes methods for evaluating the cues on a given input and making a decision based on the cue values and thresholds.
+# This module defines the FFT class, which represents a fast-and-frugal tree (FFT)
+#  for decision-making tasks. The FFT consists of a sequence of cues that are evaluated
+#  in order to make a decision between two options (e.g., left vs right gamble).
+#  The FFT class includes methods for evaluating the cues on a given input and making
+#  a decision based on the cue values and thresholds.
 
 import pandas as pd
 import numpy as np
@@ -10,7 +14,7 @@ class FFT:
     FFT class representing a fast-and-frugal tree for decision-making tasks.
     The FFT consists of a sequence of cues that are evaluated in order to make a decision
     between two options (e.g., left vs right gamble).
-    The Decision class includes methods for evaluating the cues on a given input and making
+    The FFT class includes methods for evaluating the cues on a given input and making
     a decision based on the cue values and thresholds.
     '''
     FFT_registry = {}
@@ -85,17 +89,20 @@ class FFT:
         return cue_values, side, i
 
 
-    def decide_df(self, gamble_data: pd.DataFrame, required_args = list ) -> pd.DataFrame:
+    def decide_df(self, gamble_data: pd.DataFrame, required_args = None ) -> pd.DataFrame:
         # This method evaluates the cues in the FFT on the given gamble_data and makes a decision
         # It returns the gamble_data dataframe with additional columns for each cue's value and the 
         # side it favors if the cue is true, as well as the final decision and number of cues used.
         # required_args must contain four fractal values + extra arguments used by cues.
-        
+        if not isinstance(required_args, (list, tuple)) or len(required_args) < 4:
+            raise ValueError(
+                "required_args must be a list or tuple containing at least four column names "
+                "for the fractal values (left_up, left_down, right_up, right_down)."
+            )
+
         # Prepare storage for final decision and number of cues used        
         df = gamble_data.copy()
-        df["fft_decision"] = None
-        df["fft_cues_used"] = 0
-
+        
         # Process row by row
         for idx, row in df.iterrows():
             # Extract the four main fractals
