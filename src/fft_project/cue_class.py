@@ -13,7 +13,7 @@ class Cue:
     The signed cue determines the preferred side for a given gamble pair if the cue value exceeds
     a certain threshold. For boolean cues, the threshold is 0, meaning that any positive F value
     favours the left gamble and any negative F value favours the right gamble. For numerical cues,
-    the threshold can be set to a specific value."
+    the threshold can be set to a specific value.
     '''
     cue_registry = {}
 
@@ -113,13 +113,13 @@ class Cue:
 
         Parameters
         ----------
-        df : pd.DataFrame
+        gamble_data : pd.DataFrame
             DataFrame containing the required columns.
 
         Returns
         -------
         pd.DataFrame
-            Copy of df with two new columns:
+            Copy of gamble_data with two new columns:
             - '<cue_id>_value'
             - '<cue_id>_side_if_true'
         """
