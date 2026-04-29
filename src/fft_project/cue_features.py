@@ -26,20 +26,8 @@ def expected_isoelastic_utility(g1_up, g1_down, g2_up, g2_down, wealth, dynamic,
         return (np.power(x11, 1-eta) + np.power(x12, 1-eta))/(2*(1-eta))
 
 def avoid_worst_n_ranks(g1_up, g1_down, g2_up, g2_down, n):
-    # This function implements the 'avoid worst n ranks' cue (issue #25).
-    # Returns True if g1 does NOT contain any fractal among the worst n ranks,
-    # False otherwise.
-    #
-    # Fractal ranks are 0-indexed in ascending order of value, so rank 0 is
-    # the worst fractal. The worst n ranks are therefore {0, 1, ..., n-1}.
-    #
-    # When used as a boolean Cue, the signed value F = f(g1) - f(g2) gives:
-    #   F =  1  -> left avoids worst-n, right does not  -> prefer left
-    #   F = -1  -> right avoids worst-n, left does not  -> prefer right
-    #   F =  0  -> both or neither contain a worst-n fractal -> undecided
-    #
-    # g2_up and g2_down are accepted to keep the interface consistent with the
-    # Cue class, which calls f(g1, g2) and f(g2, g1) in turn, but are not used.
+    #Returns True if g1 does not contain any of the n worst fractal ranks.
+    #Rank 0 is the worst fractal. g2 values are not used but are required by the Cue class interface.
     worst_ranks = set(range(n))
     return not ({g1_up, g1_down} & worst_ranks)
 
