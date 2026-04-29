@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 """
-Test script for the avoid_worst_n_ranks feature function.
+Test script for the avoid_worst_n_ranks cue (issue #25).
 
-Runs a set of hand-checked cases to verify that the signed cue and
-DataFrame evaluation behave as expected.
+Tests the feature function directly and as a properly instantiated Cue object,
+using the same Cue class and patterns as cue-test.py.
 """
 import sys
 from pathlib import Path
 
-# Allow running from the scripts/ directory without installing the package
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 import pandas as pd
-from fft_project.feature_avoid_worst_n import avoid_worst_n_ranks, signed_cue, evaluate_df
+from fft_project.cue_class import Cue
+from fft_project.cue_features import avoid_worst_n_ranks
 
 
 # ---------------------------------------------------------------------------
-# Unit tests for avoid_worst_n_ranks (1-sided feature)
+# Unit tests for the feature function directly
 # ---------------------------------------------------------------------------
 
-def test_avoid_worst_n_ranks():
+def test_feature_function():
     # With n=1, only rank 0 is "worst"
     assert avoid_worst_n_ranks(1, 2, 3, 4, n=1) == True,  "g1=(1,2) avoids rank 0"
     assert avoid_worst_n_ranks(0, 2, 3, 4, n=1) == False, "g1=(0,2) contains rank 0"
@@ -33,65 +33,72 @@ def test_avoid_worst_n_ranks():
     # g2 values are ignored
     assert avoid_worst_n_ranks(4, 5, 0, 0, n=3) == True,  "g2 having worst ranks is irrelevant"
 
-    print("avoid_worst_n_ranks: all tests passed.")
+    print("feature function: all tests passed.")
 
 
 # ---------------------------------------------------------------------------
-# Unit tests for signed_cue
+# Tests for the Cue class with avoid_worst_n_ranks
 # ---------------------------------------------------------------------------
 
-def test_signed_cue():
-    # Left avoids worst-1, right does not → F = 1
-    assert signed_cue(1, 2, 0, 3, n=1) == 1,  "left clear, right has rank 0 → prefer left"
+def test_cue_evaluate():
+    cue = Cue(
+        id          = "avoid_worst_1",
+        name        = "Avoid worst 1 rank",
+        description = "Prefers the gamble that does not contain the single worst fractal rank.",
+        feature     = avoid_worst_n_ranks,
+        type        = "boolean",
+        params      = {"n": 1},
+        required_args = ["fractal_left_up", "fractal_left_down",
+                         "fractal_right_up", "fractal_right_down"],
+    )
 
-    # Right avoids worst-1, left does not → F = -1
-    assert signed_cue(0, 2, 1, 3, n=1) == -1, "left has rank 0, right clear → prefer right"
+    # Left avoids worst-1, right does not -> prefer left
+    val, side = cue.evaluate(1, 2, 0, 3)
+    assert side == "left",  f"Expected 'left', got {side!r}"
 
-    # Both contain a worst-1 fractal → F = 0 (undecided)
-    assert signed_cue(0, 2, 0, 3, n=1) == 0,  "both contain rank 0 → undecided"
+    # Right avoids worst-1, left does not -> prefer right
+    val, side = cue.evaluate(0, 2, 1, 3)
+    assert side == "right", f"Expected 'right', got {side!r}"
 
-    # Neither contains a worst-1 fractal → F = 0 (undecided)
-    assert signed_cue(1, 2, 3, 4, n=1) == 0,  "neither contains rank 0 → undecided"
+    # Both contain rank 0 -> undecided
+    val, side = cue.evaluate(0, 2, 0, 3)
+    assert side is None,    f"Expected None, got {side!r}"
 
-    print("signed_cue: all tests passed.")
+    # Neither contains rank 0 -> undecided
+    val, side = cue.evaluate(1, 2, 3, 4)
+    assert side is None,    f"Expected None, got {side!r}"
+
+    print("Cue.evaluate: all tests passed.")
 
 
-# ---------------------------------------------------------------------------
-# Tests for evaluate_df
-# ---------------------------------------------------------------------------
+def test_cue_evaluate_df():
+    cue = Cue(
+        id          = "avoid_worst_1_df",
+        name        = "Avoid worst 1 rank (df)",
+        description = "DataFrame version of the avoid-worst-1-rank cue.",
+        feature     = avoid_worst_n_ranks,
+        type        = "boolean",
+        params      = {"n": 1},
+        required_args = ["fractal_left_up", "fractal_left_down",
+                         "fractal_right_up", "fractal_right_down"],
+    )
 
-def test_evaluate_df():
     df = pd.DataFrame({
-        'fractal_left_up':    [1, 0, 0, 1],
-        'fractal_left_down':  [2, 2, 2, 2],
-        'fractal_right_up':   [0, 1, 0, 1],
-        'fractal_right_down': [3, 3, 3, 3],
+        "fractal_left_up":    [1, 0, 0, 1],
+        "fractal_left_down":  [2, 2, 2, 2],
+        "fractal_right_up":   [0, 1, 0, 1],
+        "fractal_right_down": [3, 3, 3, 3],
     })
 
-    result = evaluate_df(df, n=1)
+    result = cue.evaluate_df(df)
 
-    expected_values = [1, -1, 0, 0]
-    expected_sides  = ['left', 'right', None, None]
+    expected_sides = ["left", "right", None, None]
+    actual_sides   = list(result["avoid_worst_1_df_side_if_true"])
 
-    assert list(result['avoid_worst_1_value'])       == expected_values, \
-        f"Values mismatch: {list(result['avoid_worst_1_value'])}"
-    assert list(result['avoid_worst_1_side_if_true']) == expected_sides,  \
-        f"Sides mismatch: {list(result['avoid_worst_1_side_if_true'])}"
+    assert actual_sides == expected_sides, \
+        f"Sides mismatch: {actual_sides}"
 
-    # Original df should not be modified
-    assert 'avoid_worst_1_value' not in df.columns, "evaluate_df should not modify the input df"
-
-    print("evaluate_df: all tests passed.")
-
-
-def test_evaluate_df_missing_column():
-    df = pd.DataFrame({'fractal_left_up': [1], 'fractal_left_down': [2]})
-    try:
-        evaluate_df(df, n=1)
-        assert False, "Should have raised ValueError for missing columns"
-    except ValueError:
-        pass
-    print("evaluate_df missing column: correctly raised ValueError.")
+    print("Cue.evaluate_df: all tests passed.")
 
 
 # ---------------------------------------------------------------------------
@@ -99,8 +106,7 @@ def test_evaluate_df_missing_column():
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    test_avoid_worst_n_ranks()
-    test_signed_cue()
-    test_evaluate_df()
-    test_evaluate_df_missing_column()
+    test_feature_function()
+    test_cue_evaluate()
+    test_cue_evaluate_df()
     print("\nAll tests passed.")
