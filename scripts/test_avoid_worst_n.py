@@ -78,7 +78,11 @@ def test_cue_evaluate_df():
     expected_sides = ["left", "right", None, None]
     actual_sides   = list(result["avoid_worst_1_df_side_if_true"])
 
-    assert actual_sides == expected_sides, f"Sides mismatch: {actual_sides}"
+    for i, (actual, expected) in enumerate(zip(actual_sides, expected_sides)):
+        if expected is None:
+            assert pd.isna(actual) or actual is None, f"Row {i}: expected None, got {actual!r}"
+        else:
+            assert actual == expected, f"Row {i}: expected {expected!r}, got {actual!r}"
 
     print("Cue.evaluate_df: all tests passed.")
 
