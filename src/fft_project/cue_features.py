@@ -25,3 +25,15 @@ def expected_isoelastic_utility(g1_up, g1_down, g2_up, g2_down, wealth, dynamic,
     elif eta != 1:
         return (np.power(x11, 1-eta) + np.power(x12, 1-eta))/(2*(1-eta))
 
+def avoid_worst_n_ranks(g1_up, g1_down, g2_up, g2_down, n, fractal_values):
+    #Checks if gamble 1 contains any of the n worst fractal values.
+    #The n worst fractal values are the n smallest values in fractal_values.
+    #Returns True if neither g1_up nor g1_down is among the n worst fractal values.
+    #Returns False if g1_up or g1_down is among the n worst fractal values.
+    #g2_up and g2_down are not used here, but the Cue class always passes both gambles.
+    worst_values = sorted(fractal_values)[:n]
+    if g1_up in worst_values or g1_down in worst_values:
+        return False
+    else:
+        return True
+
