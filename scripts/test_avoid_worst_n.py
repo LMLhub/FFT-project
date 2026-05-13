@@ -99,8 +99,30 @@ def test_cue_evaluate_df():
     print("Cue.evaluate_df: all tests passed.")
 
 
+def test_invalid_n():
+    #Tests that a ValueError is raised if n is larger than the number of fractals.
+    try:
+        avoid_worst_n_ranks(50.0, 108.5, -407.0, -305.5, n=9, fractal_values=FRACTAL_VALUES)
+        assert False, "Should have raised ValueError"
+    except ValueError:
+        pass
+    print("invalid n: correctly raised ValueError.")
+
+
+def test_invalid_fractal_value():
+    #Tests that a ValueError is raised if a gamble value is not in fractal_values.
+    try:
+        avoid_worst_n_ranks(999.0, 108.5, -407.0, -305.5, n=1, fractal_values=FRACTAL_VALUES)
+        assert False, "Should have raised ValueError"
+    except ValueError:
+        pass
+    print("invalid fractal value: correctly raised ValueError.")
+
+
 if __name__ == "__main__":
     test_feature_function()
     test_cue_evaluate()
     test_cue_evaluate_df()
+    test_invalid_n()
+    test_invalid_fractal_value()
     print("\nAll tests passed.")
