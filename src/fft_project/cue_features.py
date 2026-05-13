@@ -1,5 +1,7 @@
 #This file contains code implenting cues as instances of the Cue class.
 import numpy as np
+import logging
+logger = logging.getLogger(__name__)
 
 def growth_rate(g1_up, g1_down, g2_up, g2_down, dynamic):
     #This function calculates the growth rate of the g1 given the dynamic.
@@ -31,6 +33,12 @@ def avoid_worst_n_ranks(g1_up, g1_down, g2_up, g2_down, n, fractal_values):
     #Returns True if neither g1_up nor g1_down is among the n worst fractal values.
     #Returns False if g1_up or g1_down is among the n worst fractal values.
     #g2_up and g2_down are not used here, but the Cue class always passes both gambles.
+    if n >= len(fractal_values):
+        logger.error(f"n ({n}) must be smaller than the number of fractals ({len(fractal_values)}).")
+        raise ValueError(f"n ({n}) must be smaller than the number of fractals ({len(fractal_values)}).")
+    if g1_up not in fractal_values or g1_down not in fractal_values:
+        logger.error(f"Gamble values {g1_up}, {g1_down} are not in fractal_values.")
+        raise ValueError(f"Gamble values {g1_up}, {g1_down} are not in fractal_values.")
     worst_values = sorted(fractal_values)[:n]
     if g1_up in worst_values or g1_down in worst_values:
         return False
