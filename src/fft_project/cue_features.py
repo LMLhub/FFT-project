@@ -45,3 +45,19 @@ def avoid_worst_n_ranks(g1_up, g1_down, g2_up, g2_down, n, fractal_values):
     else:
         return True
 
+def fractal_signs(g1_up, g1_down, g2_up, g2_down, fractal_values):
+    #Counts the number of positive fractal values in gamble 1.
+    #Returns 2 if both g1_up and g1_down are positive.
+    #Returns 1 if only one of g1_up or g1_down is positive.
+    #Returns 0 if neither g1_up nor g1_down is positive.
+    #g2_up and g2_down are not used here, but the Cue class always passes both gambles.
+    if g1_up not in fractal_values or g1_down not in fractal_values:
+        logger.error(f"Gamble values {g1_up}, {g1_down} are not in fractal_values.")
+        raise ValueError(f"Gamble values {g1_up}, {g1_down} are not in fractal_values.")
+    count = 0
+    if g1_up > 0:
+        count += 1
+    if g1_down > 0:
+        count += 1
+    return count
+
