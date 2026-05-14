@@ -37,7 +37,7 @@ def main():
     gamble_data = pd.DataFrame({
         "wealth": [1000, 2000],
         "output_left_up": [100, 200],
-        "output_left_down": [100, 150],
+        "output_left_down": [110, 150],
         "output_right_up": [120, 180],
         "output_right_down": [80, 140]
     })
@@ -56,14 +56,31 @@ def main():
     result = fft.decide(x1_1, x1_2, x2_1, x2_2, wealth=wealth)
     
     result = fft.decide_df(gamble_data, ["output_left_up", "output_left_down", "output_right_up", "output_right_down", "wealth"])
-    #result = fft.decide_df_01(gamble_data)
     print(result)
-    #print(result[["fft1_cues_used", "c01_value", "c01_side_if_true", "c02_value", "c02_side_if_true","fft1_decision"]])
     print("result columns:", result.columns)
     print("FFT evaluation successful.")
     print("FFT registry:", FFT.FFT_registry)
     #FFT.save_registry("fft_registry.yaml")
 
+    # Test wealth trajectory method
+    # Create a sample gamble_data dataframe with additive data
+    gamble_data = pd.DataFrame({
+        "output_left_up": [100, 200],
+        "output_left_down": [110, 150],
+        "output_right_up": [120, 180],
+        "output_right_down": [80, 140]
+    })
+    trajectory_result = fft.wealth_trajectory(gamble_data, ["output_left_up", "output_left_down", "output_right_up", "output_right_down", "wealth"], initial_wealth=1000, dynamic="additive")
+    print(trajectory_result[["time_step", "wealth", "wealth_final"]])
 
+    # Test wealth trajectory method with multiplicative data
+    gamble_data = pd.DataFrame({
+        "output_left_up": [0.841, 1.184],
+        "output_left_down": [0.841, 1],
+        "output_right_up": [1.446, 0.841],
+        "output_right_down": [1, 1.184]
+    })
+    trajectory_result_mult = fft.wealth_trajectory(gamble_data, ["output_left_up", "output_left_down", "output_right_up", "output_right_down", "wealth"], initial_wealth=1000,dynamic="multiplicative")
+    print(trajectory_result_mult[["time_step", "wealth", "wealth_final"]])
 if __name__ == "__main__":
     main() 
