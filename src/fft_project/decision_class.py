@@ -136,86 +136,10 @@ class FFT:
         
         return df
 
-
-    def wealth_trajectory(self,
-                          gamble_data: pd.DataFrame,
-                          required_args = None,
-                          initial_wealth: float = None,
-                          dynamic: str = None,
-                          random_seed: int = None
-                          ) -> pd.DataFrame:
-        # This method evaluates the cues in the FFT on the given gamble_data and makes a decision.
-        # Then it flips a coin to determine the outcome of the gamble and updates the wealth
-        # trajectory based on the decision and the outcome.
-        # It returns the gamble_data dataframe with additional columns for each cue's value and the 
-        # side it favors if the cue is true, as well as the final decision and number of cues used.
-        # Additionally, it includes a column for the wealth trajectory over time.
-        # OBS: the "wealth" column is the initial wealth, and the "wealth_final" columns
-        # is the wealth after the gamble outcome has been realized.
-        # required_args must contain four fractal values + extra arguments used by cues.
-        if not isinstance(required_args, (list, tuple)) or len(required_args) < 4:
-            logger.error("required_args must be a list or tuple containing at least four column names for the fractal values (left_up, left_down, right_up, right_down)")
-            raise ValueError(
-                "required_args must be a list or tuple containing at least four column names "
-                "for the fractal values (left_up, left_down, right_up, right_down)."
-            )
-        
-        if random_seed is not None:
-            np.random.seed(random_seed)
-        
-        if initial_wealth is None:
-            logger.error("Initial_wealth must be provided to calculate wealth trajectory.")
-            raise ValueError("Initial_wealth must be provided to calculate wealth trajectory.")
-        
-        if dynamic not in ["multiplicative", "additive"]:
-            logger.error("Dynamic must be either 'multiplicative' or 'additive'.")
-            raise ValueError("Dynamic must be either 'multiplicative' or 'additive'.")
-        
-        # Prepare storage for final decision and number of cues used        
-        df = gamble_data.copy()
-        df["time_step"] = df.index
-        df.loc[0, "wealth"] = initial_wealth
-
-        # Process row by row
-        for idx, row in df.iterrows():
-            # Extract the four main fractals
-            fractal_values = {
-                "x_left_up": row[required_args[0]],
-                "x_left_down": row[required_args[1]],
-                "x_right_up": row[required_args[2]],
-                "x_right_down": row[required_args[3]]
-            }
-
-            # Extract any additional required arguments
-            extra_arg_names = required_args[4:]
-            extra_args = {arg: row[arg] for arg in extra_arg_names}
-
-            cue_values, side, cues_used = self.decide(
-                fractal_values["x_left_up"],
-                fractal_values["x_left_down"],
-                fractal_values["x_right_up"],
-                fractal_values["x_right_down"],
-                **extra_args
-            )
-            
-            #Save cue values in df
-            for i in range(len(cue_values)):
-                df.loc[idx, f"{self.cues[i].id}_cue_value"] = cue_values[i]
-
-            df.loc[idx, f"{self.id}_decision"] = side
-            df.loc[idx, f"{self.id}_cues_used"] = cues_used
-
-            # coin flip to determine outcome of gamble
-            outcome = np.random.choice(["up", "down"])
-            outcome_value = fractal_values[f"x_{side}_{outcome}"]
-
-            # Update wealth trajectory based on decision and outcome
-            if dynamic == "multiplicative":
-                df.loc[idx, f"{self.id}_wealth"] = df.loc[idx, "wealth"] * np.exp(outcome_value)
-            elif dynamic == "additive":
-                df.loc[idx, f"{self.id}_wealth"] = df.loc[idx, "wealth"] + outcome_value
-
-            if idx < len(df) - 1:
-                df.loc[idx + 1, "wealth"] = df.loc[idx, f"{self.id}_wealth"]
-            
-        return df
+    def retrieve_required_args(self):
+        # This method retrieves the required arguments for the cues in the FFT and returns them as a list.
+        required_args = set()
+        for cue in self.cues:
+            # Update the required_args set with the required arguments of this cue. Ignores duplicates.
+            required_args.update(cue.required_args)
+        return list(required_args)
