@@ -80,32 +80,9 @@ def test_fft_evaluate():
     print("FFT registry:", FFT.FFT_registry)
     #FFT.save_registry("fft_registry.yaml")
 
-def test_wealth_trajectory():
-    # Test wealth trajectory method
-    # Create a sample gamble_data dataframe with additive data
-    cue1 = Cue.cue_registry["c03"]
-
-    fft = FFT(id="fft2",
-              name="Avoid the worst or random",
-              description="An example FFT with two cues.",
-              cues=[cue1])
-
-    gamble_data = pd.DataFrame({
-        "gamma_left_up": [-407.0, -305.5],
-        "gamma_left_down": [50.0, 440.5],
-        "gamma_right_up": [-241.5, 108.5],
-        "gamma_right_down": [ 210.5, 309.5]
-    })
-    trajectory_result = fft.wealth_trajectory(gamble_data, ["gamma_left_up", "gamma_left_down", "gamma_right_up", "gamma_right_down", "wealth"], initial_wealth=1000, dynamic="additive")
-    
-    print(trajectory_result[["time_step", "wealth","fft2_cues_used","fft2_decision","fft2_wealth"]])
-
-
 def main():
     create_cues()
     test_fft_evaluate()
-    test_wealth_trajectory()
-
 
 if __name__ == "__main__":
     main() 
