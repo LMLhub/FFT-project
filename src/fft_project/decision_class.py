@@ -211,11 +211,11 @@ class FFT:
 
             # Update wealth trajectory based on decision and outcome
             if dynamic == "multiplicative":
-                df.loc[idx, "wealth_final"] = df.loc[idx, "wealth"] * np.exp(outcome_value)
+                df.loc[idx, f"{self.id}_wealth"] = df.loc[idx, "wealth"] * np.exp(outcome_value)
             elif dynamic == "additive":
-                df.loc[idx, "wealth_final"] = df.loc[idx, "wealth"] + outcome_value
+                df.loc[idx, f"{self.id}_wealth"] = df.loc[idx, "wealth"] + outcome_value
 
             if idx < len(df) - 1:
-                df.loc[idx + 1, "wealth"] = df.loc[idx, "wealth_final"]
+                df.loc[idx + 1, "wealth"] = df.loc[idx, f"{self.id}_wealth"]
             
         return df
