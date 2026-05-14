@@ -67,14 +67,16 @@ def test_wealth_trajectory():
         fft=fft,
         gamble_data=gamble_data,
         initial_wealth=1000,
-        random_seed=42,
         dynamic="additive"
     )
 
-    trajectory_result = experiment.wealth_trajectory(initial_wealth=1000, random_seed=42)
+    trajectory_result = experiment.run_experiment()
+    print(trajectory_result[["time_step", "wealth","fft2_cues_used_1","fft2_decision_1","fft2_wealth_1"]])
     
-    print(trajectory_result[["time_step", "wealth","fft2_cues_used","fft2_decision","fft2_wealth"]])
-
+    trajectory_result = experiment.run_experiment()
+    print(trajectory_result[["time_step", "wealth","fft2_cues_used_2","fft2_decision_2","fft2_wealth_2"]])
+    
+    print(experiment.random_seeds)
 def main():
     create_cues()
     test_wealth_trajectory()
