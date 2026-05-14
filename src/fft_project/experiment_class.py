@@ -18,7 +18,7 @@ class Experiment:
     '''
     experiment_registry = {}
 
-    def __init__(self, id, name, description, fft, dynamic = None, gamble_data = None, initial_wealth = None, random_seed = None):
+    def __init__(self, id, name, description, fft, dynamic = None, gamble_data = None, initial_wealth = None):
         self.id = id                    #Unique identifier for the experiment
         self.name = name                #Short name of the experiment
         self.description = description  #Text description of the experiment
@@ -26,8 +26,9 @@ class Experiment:
         self.dynamic = dynamic          #"multiplicative" or "additive" dynamic for the wealth trajectory.
         self.gamble_data = gamble_data  #DataFrame containing the gamble pairs and any additional required arguments for the cues.
         self.initial_wealth = initial_wealth  #Initial wealth for the experiment.
-        self.random_seed = random_seed  #Random seed for reproducibility of the experiment results. This is used in the wealth_trajectory method when flipping a coin to determine the outcome of the gamble.
-        
+        self.random_seeds= []           #List to store the random seeds used in the experiment, which can be useful for tracking and reproducibility purposes.
+        self.runs = 0                      #Counter for the number of times the experiment has been run.
+
         #Check that fft is an instance of the FFT class
         if not isinstance(self.fft, FFT):
             logger.error("FFT must be an instance of the FFT class.")
@@ -43,10 +44,6 @@ class Experiment:
             logger.error("initial_wealth must be provided to calculate wealth trajectory.")
             raise ValueError("initial_wealth must be provided to calculate wealth trajectory.")
 
-        #Set random seed for reproducibility 
-        if self.random_seed is not None:
-            np.random.seed(self.random_seed)            
-        
         #Retrieve the required arguments for the cues in the FFT.
         self.required_args = self.fft.retrieve_required_args()
         
@@ -66,7 +63,7 @@ class Experiment:
             raise ValueError(f"Experiment with id '{self.id}' already exists. IDs must be unique.")
         Experiment.experiment_registry[self.id] = self
 
-    def wealth_trajectory(self,
+    def run_experiment(self,
                           initial_wealth: float = None,
                           random_seed: int = None
                           ) -> pd.DataFrame:
@@ -78,12 +75,20 @@ class Experiment:
         # Additionally, it includes a column for the wealth trajectory over time.
         # OBS: the "wealth" column is the initial wealth, and the "wealth_final" columns
         # is the wealth after the gamble outcome has been realized.
-        # required_args must contain four fractal values + extra arguments used by cues.
-
+        
         # Set random seed for reproducibility if provided        
         if random_seed is not None:
             np.random.seed(random_seed)
+        else:
+            random_seed = np.random.randint(0, 1_000_000)
+            np.random.seed(random_seed)
         
+        # adds the random seed to the list of random seeds used in the experiment, which can be useful for tracking and reproducibility purposes.
+        self.random_seeds.append(random_seed)
+
+        # keep tract of the number of runs of the experiment.
+        self.runs += 1
+
         # set initial wealth for the experiment if not provided as an argument to the method
         if initial_wealth is None:
             initial_wealth = self.initial_wealth
@@ -115,12 +120,12 @@ class Experiment:
                 **extra_args
             )
             
-            #Save cue values in df
-            for i in range(len(cue_values)):
-                df.loc[idx, f"{self.fft.cues[i].id}_cue_value"] = cue_values[i]
+            #Save cue values in df - OBS: this seems not to belong to the the Experiment class, but to the FFT class. We can move it there later if we want to keep the Experiment class.
+            #for i in range(len(cue_values)):
+            #    df.loc[idx, f"{self.fft.cues[i].id}_cue_value"] = cue_values[i]
 
-            df.loc[idx, f"{self.fft.id}_decision"] = side
-            df.loc[idx, f"{self.fft.id}_cues_used"] = cues_used
+            df.loc[idx, f"{self.fft.id}_decision_{self.runs}"] = side
+            df.loc[idx, f"{self.fft.id}_cues_used_{self.runs}"] = cues_used
 
             # coin flip to determine outcome of gamble
             outcome = np.random.choice(["up", "down"])
@@ -128,11 +133,41 @@ class Experiment:
 
             # Update wealth trajectory based on decision and outcome
             if self.dynamic == "multiplicative":
-                df.loc[idx, f"{self.fft.id}_wealth"] = df.loc[idx, "wealth"] * np.exp(outcome_value)
+                df.loc[idx, f"{self.fft.id}_wealth_{self.runs}"] = df.loc[idx, "wealth"] * np.exp(outcome_value)
             elif self.dynamic == "additive":
-                df.loc[idx, f"{self.fft.id}_wealth"] = df.loc[idx, "wealth"] + outcome_value
+                df.loc[idx, f"{self.fft.id}_wealth_{self.runs}"] = df.loc[idx, "wealth"] + outcome_value
 
             if idx < len(df) - 1:
-                df.loc[idx + 1, "wealth"] = df.loc[idx, f"{self.fft.id}_wealth"]
+                df.loc[idx + 1, "wealth"] = df.loc[idx, f"{self.fft.id}_wealth_{self.runs}"]
             
+            self.gamble_data = df
+
         return df
+
+def accuracy(self, decision: str=None, reference_decisions: str=None):
+    # This method calculates the accuracy of the FFT's decisions at a given run compared to the
+    # optimal decisions based on the gamble_data.
+    
+    # Check that the decision column for the given run exists in the gamble_data dataframe
+    if decision is None:
+        logger.error("Column name of the decision must be provided to calculate accuracy.")
+        raise ValueError("Column name of the decision must be provided to calculate accuracy.")
+    if decision not in self.gamble_data.columns:
+        logger.error(f"Decision column '{decision}' not found in gamble_data.")
+        raise ValueError(f"Decision column '{decision}' not found in gamble_data.")
+    
+    # Check that the reference_decisions column exists in the gamble_data dataframe
+    if reference_decisions is None:
+        logger.error("Column name of the reference decisions must be provided to calculate accuracy.")
+        raise ValueError("Column name of the reference decisions must be provided to calculate accuracy.")
+    
+    # Check that the reference_decisions column exists in the gamble_data dataframe
+    if reference_decisions not in self.gamble_data.columns:
+        logger.error(f"Reference decisions column '{reference_decisions}' not found in gamble_data.")
+        raise ValueError(f"Reference decisions column '{reference_decisions}' not found in gamble_data.")
+    
+    # Calculate accuracy as the proportion of decisions that match the reference decisions
+    correct_decisions = self.gamble_data[decision] == self.gamble_data[reference_decisions]
+    accuracy = correct_decisions.mean()
+    
+    return accuracy
