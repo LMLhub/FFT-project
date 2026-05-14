@@ -7,7 +7,8 @@
 import pandas as pd
 import numpy as np
 import yaml
-
+import logging
+logger = logging.getLogger(__name__)
 
 class FFT: 
     '''
@@ -28,6 +29,7 @@ class FFT:
         
         #Add FFT to registry
         if self.id in FFT.FFT_registry:
+            logger.error(f"FFT with id '{self.id}' already exists. IDs must be unique.")
             raise ValueError(f"FFT with id '{self.id}' already exists. IDs must be unique.")
         FFT.FFT_registry[self.id] = self
 
@@ -96,6 +98,7 @@ class FFT:
         # side it favors if the cue is true, as well as the final decision and number of cues used.
         # required_args must contain four fractal values + extra arguments used by cues.
         if not isinstance(required_args, (list, tuple)) or len(required_args) < 4:
+            logger.error("required_args must be a list or tuple containing at least four column names for the fractal values (left_up, left_down, right_up, right_down)")
             raise ValueError(
                 "required_args must be a list or tuple containing at least four column names "
                 "for the fractal values (left_up, left_down, right_up, right_down)."
@@ -151,6 +154,7 @@ class FFT:
         # is the wealth after the gamble outcome has been realized.
         # required_args must contain four fractal values + extra arguments used by cues.
         if not isinstance(required_args, (list, tuple)) or len(required_args) < 4:
+            logger.error("required_args must be a list or tuple containing at least four column names for the fractal values (left_up, left_down, right_up, right_down)")
             raise ValueError(
                 "required_args must be a list or tuple containing at least four column names "
                 "for the fractal values (left_up, left_down, right_up, right_down)."
@@ -160,9 +164,11 @@ class FFT:
             np.random.seed(random_seed)
         
         if initial_wealth is None:
+            logger.error("Initial_wealth must be provided to calculate wealth trajectory.")
             raise ValueError("Initial_wealth must be provided to calculate wealth trajectory.")
         
         if dynamic not in ["multiplicative", "additive"]:
+            logger.error("Dynamic must be either 'multiplicative' or 'additive'.")
             raise ValueError("Dynamic must be either 'multiplicative' or 'additive'.")
         
         # Prepare storage for final decision and number of cues used        
