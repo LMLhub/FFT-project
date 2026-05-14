@@ -61,3 +61,14 @@ def fractal_signs(g1_up, g1_down, g2_up, g2_down, fractal_values):
         count += 1
     return count
 
+def avoid_worst(g1_up, g1_down, g2_up, g2_down):
+    #Checks if gamble 1 contains the worst of the 4 fractal values in the
+    # presented gamble pair. The worst fractal value is the smallest value among the 4 values.
+    #Returns True if neither g1_up nor g1_down is among the n worst fractal values.
+    #Returns False if g1_up or g1_down is among the n worst fractal values.
+    #g2_up and g2_down are not used here, but the Cue class always passes both gambles.
+    worst_value = min(g1_up, g1_down, g2_up, g2_down)
+    if g1_up == worst_value or g1_down == worst_value:
+        return False
+    else:
+        return True
