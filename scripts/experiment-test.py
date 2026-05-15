@@ -46,12 +46,16 @@ def create_cues():
 def test_wealth_trajectory():
     # Test wealth trajectory method
     # Create a sample gamble_data dataframe with additive data
-    cue1 = Cue.cue_registry["c03"]
-
+    
     fft = FFT(id="fft2",
               name="Avoid the worst or random",
               description="An example FFT with two cues.",
-              cues=[cue1])
+              cues=[Cue.cue_registry["c03"]])
+
+    growth_rate_fft = FFT(id="fft3",
+              name="Growth Rate - additive",
+              description="An example FFT with the growth rate cue.",
+              cues=[Cue.cue_registry["c02"]])
 
     gamble_data = pd.DataFrame({
         "gamma_left_up": [-407.0, -305.5],
@@ -63,20 +67,22 @@ def test_wealth_trajectory():
     experiment =Experiment(
         id="exp1",
         name="Test Experiment",
-        description="An experiment to test the wealth trajectory method.",
-        fft=fft,
+        description="An experiment to test the methods of the Experiment class.",
+        ffts=[FFT.FFT_registry["fft2"], FFT.FFT_registry["fft3"]],
         gamble_data=gamble_data,
         initial_wealth=1000,
         dynamic="additive"
     )
 
     trajectory_result = experiment.run_experiment()
-    print(trajectory_result[["time_step", "wealth","fft2_cues_used_1","fft2_decision_1","fft2_wealth_1"]])
+    print(trajectory_result[["time_step","fft2_decision_1","fft2_wealth_1","fft3_decision_1","fft3_wealth_1"]])
     
     trajectory_result = experiment.run_experiment()
     print(trajectory_result[["time_step", "wealth","fft2_cues_used_2","fft2_decision_2","fft2_wealth_2"]])
     
     print(experiment.random_seeds)
+
+
 def main():
     create_cues()
     test_wealth_trajectory()
