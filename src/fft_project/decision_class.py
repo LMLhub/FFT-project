@@ -139,8 +139,11 @@ class FFT:
     def retrieve_required_args(self):
         # This method retrieves the required arguments for the cues in the FFT and
         # returns them as a list.
-        required_args = set()
+        required_args = []
+
         for cue in self.cues:
-            # Update the required_args set with the required arguments of this cue. Ignores duplicates.
-            required_args.update(cue.required_args)
-        return list(required_args)
+            for arg in cue.required_args:
+                if arg not in required_args:
+                    required_args.append(arg)
+
+        return required_args
