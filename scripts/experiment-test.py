@@ -74,12 +74,25 @@ def test_wealth_trajectory():
         dynamic="additive"
     )
 
+    #test running the experiment and getting the trajectory
     trajectory_result = experiment.run_experiment()
     print(trajectory_result[["time_step","fft2_decision_1","fft2_wealth_1","fft3_decision_1","fft3_wealth_1"]])
     
     trajectory_result = experiment.run_experiment()
-    print(trajectory_result[["time_step", "wealth","fft2_cues_used_2","fft2_decision_2","fft2_wealth_2"]])
     
+    #test accuracy method
+    accuracy_result = experiment.accuracy(FFT_id="fft2", reference_id="fft3", run_no=1)    
+    print(f"Accuracy of fft2 at run 1: {accuracy_result:.2f}")
+
+    frugality_result = experiment.frugality(FFT_id="fft2", run_no = 1)
+    print(f"Frugality of fft2 at run 1: {frugality_result:.2f}")
+    print(experiment.random_seeds)
+
+    accuracy_result = experiment.accuracy(FFT_id="fft2", reference_id="fft3")    
+    print(f"Accuracy of fft2 at run 1 and 2: {accuracy_result:.2f}")
+
+    frugality_result = experiment.frugality(FFT_id="fft2")
+    print(f"Frugality of fft2 at run 1 and 2: {frugality_result:.2f}")
     print(experiment.random_seeds)
 
 
