@@ -18,22 +18,27 @@ class Experiment:
     '''
     experiment_registry = {}
 
-    def __init__(self, id, name, description, fft, dynamic = None, gamble_data = None, initial_wealth = None):
+    def __init__(self, id, name, description, ffts, dynamic = None, gamble_data = None, initial_wealth = None):
         self.id = id                    #Unique identifier for the experiment
         self.name = name                #Short name of the experiment
         self.description = description  #Text description of the experiment
-        self.fft = fft                  #FFT decision rule to be evaluated in the experiment
+        self.ffts = ffts                #List of FFT decision rule to be evaluated in the experiment
         self.dynamic = dynamic          #"multiplicative" or "additive" dynamic for the wealth trajectory.
         self.gamble_data = gamble_data  #DataFrame containing the gamble pairs and any additional required arguments for the cues.
         self.initial_wealth = initial_wealth  #Initial wealth for the experiment.
         self.random_seeds= []           #List to store the random seeds used in the experiment, which can be useful for tracking and reproducibility purposes.
         self.runs = 0                      #Counter for the number of times the experiment has been run.
 
-        #Check that fft is an instance of the FFT class
-        if not isinstance(self.fft, FFT):
-            logger.error("FFT must be an instance of the FFT class.")
-            raise ValueError("FFT must be an instance of the FFT class.")
-        
+        #Check that ffts is an list of the FFT class
+        if not isinstance(self.ffts, list):
+            logger.error("FFTs must be a list of FFT instances.")
+            raise ValueError("FFTs must be a list of FFT instances.")
+        else:
+            for fft in self.ffts:
+                if not isinstance(fft, FFT):
+                    logger.error("All items in ffts must be instances of the FFT class.")
+                    raise ValueError("All items in ffts must be instances of the FFT class.")
+
         #Check that dynamic is either "multiplicative" or "additive"
         if self.dynamic not in ["multiplicative", "additive"]: 
             logger.error("Dynamic must be either 'multiplicative' or 'additive'.")
@@ -45,8 +50,10 @@ class Experiment:
             raise ValueError("initial_wealth must be provided to calculate wealth trajectory.")
 
         #Retrieve the required arguments for the cues in the FFT.
-        self.required_args = self.fft.retrieve_required_args()
-        
+        self.required_args = []
+        for fft in self.ffts:
+            self.required_args.extend(fft.retrieve_required_args())
+            print(f"Required arguments for FFT '{fft.name}': {fft.retrieve_required_args()}")
         # Check that required arguments are present in the gamble_data dataframe
         if self.gamble_data is not None:
             missing_args = [arg for arg in self.required_args if arg not in self.gamble_data.columns]
@@ -92,55 +99,63 @@ class Experiment:
         # set initial wealth for the experiment if not provided as an argument to the method
         if initial_wealth is None:
             initial_wealth = self.initial_wealth
-                
-        # Prepare storage for final decision and number of cues used        
+
+        #copy gamble data      
         df = self.gamble_data.copy()
         df["time_step"] = df.index
+        
+        # Initialize wealth column with initial wealth for the first time step
         df.loc[0, "wealth"] = initial_wealth
 
-        # Process row by row
-        for idx, row in df.iterrows():
-            # Extract the four main fractals
-            fractal_values = {
-                "x_left_up": row[self.required_args[0]],
-                "x_left_down": row[self.required_args[1]],
-                "x_right_up": row[self.required_args[2]],
-                "x_right_down": row[self.required_args[3]]
-            }
+        # Coin flip to determine outcome of gambles for entire dataframe. This is done before evaluating the FFT to ensure that the same outcome is used for all FFTs in the experiment.
+        df["coin_flip"] = np.random.choice(["up", "down"], size=len(df))
 
-            # Extract any additional required arguments
-            extra_arg_names = self.required_args[4:]
-            extra_args = {arg: row[arg] for arg in extra_arg_names}
-
-            cue_values, side, cues_used = self.fft.decide(
-                fractal_values["x_left_up"],
-                fractal_values["x_left_down"],
-                fractal_values["x_right_up"],
-                fractal_values["x_right_down"],
-                **extra_args
-            )
+        # Evaluate each FFT and store the results
+        for fft in self.ffts:
             
-            #Save cue values in df - OBS: this seems not to belong to the the Experiment class, but to the FFT class. We can move it there later if we want to keep the Experiment class.
-            #for i in range(len(cue_values)):
-            #    df.loc[idx, f"{self.fft.cues[i].id}_cue_value"] = cue_values[i]
+            # Process row by row
+            for idx, row in df.iterrows():
+                # Extract the four main fractals
+                fractal_values = {
+                    "x_left_up": row[self.required_args[0]],
+                    "x_left_down": row[self.required_args[1]],
+                    "x_right_up": row[self.required_args[2]],
+                    "x_right_down": row[self.required_args[3]]
+                }
+                print(f"Fractal values for row {idx}: {fractal_values}")
 
-            df.loc[idx, f"{self.fft.id}_decision_{self.runs}"] = side
-            df.loc[idx, f"{self.fft.id}_cues_used_{self.runs}"] = cues_used
+                # Extract any additional required arguments
+                extra_arg_names = self.required_args[4:]
+                extra_args = {arg: row[arg] for arg in extra_arg_names}
 
-            # coin flip to determine outcome of gamble
-            outcome = np.random.choice(["up", "down"])
-            outcome_value = fractal_values[f"x_{side}_{outcome}"]
+                cue_values, side, cues_used = fft.decide(
+                    fractal_values["x_left_up"],
+                    fractal_values["x_left_down"],
+                    fractal_values["x_right_up"],
+                    fractal_values["x_right_down"],
+                    **extra_args
+                )
 
-            # Update wealth trajectory based on decision and outcome
-            if self.dynamic == "multiplicative":
-                df.loc[idx, f"{self.fft.id}_wealth_{self.runs}"] = df.loc[idx, "wealth"] * np.exp(outcome_value)
-            elif self.dynamic == "additive":
-                df.loc[idx, f"{self.fft.id}_wealth_{self.runs}"] = df.loc[idx, "wealth"] + outcome_value
+                print("Side chosen:", side)
 
-            if idx < len(df) - 1:
-                df.loc[idx + 1, "wealth"] = df.loc[idx, f"{self.fft.id}_wealth_{self.runs}"]
+                df.loc[idx, f"{fft.id}_decision_{self.runs}"] = side
+                df.loc[idx, f"{fft.id}_cues_used_{self.runs}"] = cues_used
+
+                outcome = row["coin_flip"]
+
+                print("Outcome of coin flip:", outcome)
+                outcome_value = fractal_values[f"x_{side}_{outcome}"]
+
+                # Update wealth trajectory based on decision and outcome
+                if self.dynamic == "multiplicative":
+                    df.loc[idx, f"{fft.id}_wealth_{self.runs}"] = df.loc[idx, "wealth"] * np.exp(outcome_value)
+                elif self.dynamic == "additive":
+                    df.loc[idx, f"{fft.id}_wealth_{self.runs}"] = df.loc[idx, "wealth"] + outcome_value
+
+                if idx < len(df) - 1:
+                    df.loc[idx + 1, "wealth"] = df.loc[idx, f"{fft.id}_wealth_{self.runs}"]
             
-            self.gamble_data = df
+        self.gamble_data = df
 
         return df
 
