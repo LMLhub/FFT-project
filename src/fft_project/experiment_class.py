@@ -201,7 +201,7 @@ class Experiment:
         if self.results is None:
             self.results = result_df
         else:
-            self.results = pd.concat([self.results, result_df])
+            self.results = pd.concat([self.results, result_df], axis=1)
 
         return self.results
     
