@@ -196,104 +196,53 @@ class Experiment:
             columns=self.gamble_data.index
         ).T
         
-        # ── Accumulate into the master results record ─────────────────────────────
-
+        # ── Update results of experiment object ─────────────────────────────
         if self.results is None:
             self.results = result_df
         else:
             self.results = pd.concat([self.results, result_df], axis=1)
 
+        # Return the result dataframe for all experiments runs so far.
         return self.results
     
-    '''
-    def run_experiment(self,
-                          initial_wealth: float = None,
-                          random_seed: int = None
-                          ) -> pd.DataFrame:
-        # This method evaluates the cues in the FFT on the given gamble_data and makes a decision.
-        # Then it flips a coin to determine the outcome of the gamble and updates the wealth
-        # trajectory based on the decision and the outcome.
-        # It returns the gamble_data dataframe with additional columns for each cue's value and the 
-        # side it favors if the cue is true, as well as the final decision and number of cues used.
-        # Additionally, it includes a column for the wealth trajectory over time.
-        # OBS: the "wealth" column is the initial wealth, and the "wealth_final" columns
-        # is the wealth after the gamble outcome has been realized.
-        
-        # Set random seed for reproducibility if provided        
-        if random_seed is not None:
-            np.random.seed(random_seed)
+    def accuracy(self, fft_id: str, reference_id: str, run_no: int = None) -> float:
+    # This method calculates the accuracy of the FFT's decisions compared to the
+    # optimal decisions of a reference FFT, across one or more runs.
+    # Determine which runs to evaluate.
+        if run_no is None:
+            runs = range(1, self.runs + 1) #if no run number is provided, evaluate all runs
+        elif isinstance(run_no, int):
+            runs = [run_no]
         else:
-            random_seed = np.random.randint(0, 1_000_000)
-            np.random.seed(random_seed)
+            runs = run_no
+
+        correct_decisions = 0
+        number_of_decisions = 0
+
+        for run in runs:
+
+            # Check that the decision series exists for the FFT and the reference.
+            if (fft_id, run, "decision") not in self.results.columns:
+                logger.error(f"Decision column for FFT '{fft_id}' run {run} not found in results.")
+                raise ValueError(f"Decision column for FFT '{fft_id}' run {run} not found in results.")
+
+            if (reference_id, run, "decision") not in self.results.columns:
+                logger.error(f"Decision column for reference FFT '{reference_id}' run {run} not found in results.")
+                raise ValueError(f"Decision column for reference FFT '{reference_id}' run {run} not found in results.")
+
+            # Pull the decision series for this run.
+            fft_decisions       = self.results[(fft_id,       run, "decision")]
+            reference_decisions = self.results[(reference_id, run, "decision")]
+
+            # Count the number of correct decisions (where the FFT's decision matches the reference)
+            # and the total number of decisions.
+            correct_decisions   += (fft_decisions == reference_decisions).sum()
+            number_of_decisions += len(fft_decisions)
         
-        # adds the random seed to the list of random seeds used in the experiment, which can be useful for tracking and reproducibility purposes.
-        self.random_seeds.append(random_seed)
-
-        # keep tract of the number of runs of the experiment.
-        self.runs += 1
-
-        # set initial wealth for the experiment if not provided as an argument to the method
-        if initial_wealth is None:
-            initial_wealth = self.initial_wealth
-
-        #copy gamble data      
-        df = self.gamble_data.copy()
-        df["time_step"] = df.index
-        
-        # Initialize wealth column with initial wealth for the first time step
-        df.loc[0, "wealth"] = initial_wealth
-
-        # Coin flip to determine outcome of gambles for entire dataframe. This is done before evaluating the FFT
-        # to ensure that the same outcome is used for all FFTs in the experiment.
-        df["coin_flip"] = np.random.choice(["up", "down"], size=len(df))
-
-        # Evaluate each FFT and store the results
-        for fft in self.ffts:
-            
-            # Process row by row
-            for idx, row in df.iterrows():
-                # Extract the four main fractals
-                fractal_values = {
-                    "x_left_up": row[self.required_args[0]],
-                    "x_left_down": row[self.required_args[1]],
-                    "x_right_up": row[self.required_args[2]],
-                    "x_right_down": row[self.required_args[3]]
-                }
-                
-                # Extract any additional required arguments
-                extra_arg_names = self.required_args[4:]
-                extra_args = {arg: row[arg] for arg in extra_arg_names}
-
-                cue_values, side, cues_used = fft.decide(
-                    fractal_values["x_left_up"],
-                    fractal_values["x_left_down"],
-                    fractal_values["x_right_up"],
-                    fractal_values["x_right_down"],
-                    **extra_args
-                )
-                # Save cue values in df
-                df.loc[idx, f"{fft.id}_decision_{self.runs}"] = side
-                df.loc[idx, f"{fft.id}_cues_used_{self.runs}"] = cues_used
-
-                # Determine the outcome value based on the coin flip and the decision side
-                outcome = row["coin_flip"]
-                outcome_value = fractal_values[f"x_{side}_{outcome}"]
-
-                # Update wealth trajectory based on decision and outcome
-                if self.dynamic == "multiplicative":
-                    df.loc[idx, f"{fft.id}_wealth_{self.runs}"] = df.loc[idx, "wealth"] * np.exp(outcome_value)
-                elif self.dynamic == "additive":
-                    df.loc[idx, f"{fft.id}_wealth_{self.runs}"] = df.loc[idx, "wealth"] + outcome_value
-
-                # Update wealth for the next time step (unless it's the last time step)
-                if idx < len(df) - 1:
-                    df.loc[idx + 1, "wealth"] = df.loc[idx, f"{fft.id}_wealth_{self.runs}"]
-            
-        self.gamble_data = df
-
-        return df
-    '''
-
+        # Return accuracy as the proportion of decisions that match the reference.
+        return correct_decisions / number_of_decisions
+    
+    ''' 
     def accuracy(self, FFT_id: str, reference_id: str, run_no: int = None) -> float:
         # This method calculates the accuracy of the FFT's decisions at a given run compared to the
         # optimal decisions based on the gamble_data.
@@ -329,7 +278,7 @@ class Experiment:
         accuracy = correct_decisions/number_of_decisions
         
         return accuracy
-
+    '''
     def frugality(self, FFT_id: str, run_no: int = None) -> float:
         # This method calculates the frugality of the FFT's decisions at a given run, which is defined as the average number of cues used to make a decision.
         if run_no is None:
