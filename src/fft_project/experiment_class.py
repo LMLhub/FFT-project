@@ -1,3 +1,5 @@
+from ast import arg
+
 import pandas as pd
 import numpy as np
 import yaml
@@ -28,6 +30,7 @@ class Experiment:
         self.initial_wealth = initial_wealth  #Initial wealth for the experiment.
         self.random_seeds= []           #List to store the random seeds used in the experiment, which can be useful for tracking and reproducibility purposes.
         self.runs = 0                      #Counter for the number of times the experiment has been run.
+        self.results = None   # accumulates result_df across runs
 
         #Check that ffts is an list of the FFT class
         if not isinstance(self.ffts, list):
@@ -70,6 +73,139 @@ class Experiment:
             raise ValueError(f"Experiment with id '{self.id}' already exists. IDs must be unique.")
         Experiment.experiment_registry[self.id] = self
 
+    def run_experiment(self,
+                    initial_wealth: float = None,
+                    random_seed: int = None
+                    ) -> pd.DataFrame:
+        """
+        For each FFT, walk through every gamble in sequence:
+        1. Ask the FFT to make a decision (left or right).
+        2. Flip a coin to reveal the outcome (up or down).
+        3. Update wealth based on what was decided and what happened.
+        
+        Returns a multi-index DataFrame indexed by (fft_id, run, metric),
+        with gamble_data index values as columns, accumulated across all runs
+        in self.results.
+        """
+
+        # ── Setup ─────────────────────────────────────────────────────────────────
+
+        # Set the random seed (for reproduction).
+        if random_seed is None:
+            random_seed = np.random.randint(0, 1_000_000)
+        np.random.seed(random_seed)
+        self.random_seeds.append(random_seed)
+
+        # Count this as a new run.
+        self.runs += 1
+        run = self.runs
+
+        # If no initial wealth is provided, use default.
+        if initial_wealth is None:
+            initial_wealth = self.initial_wealth
+
+        # ── Run every FFT through every gamble ────────────────────────────────────
+        # Initialize a dictionary to collect results for all FFTs and runs.
+        collected = {}
+
+        #Run each FFT through the gamble data
+        for fft in self.ffts:
+
+            # Each FFT starts the run with the same initial wealth.
+            wealth = initial_wealth
+
+            # Prepare empty result lists for this FFT / run combination.
+            decisions = []   # which side the FFT chose  ("left" or "right")
+            cues_used = []   # how many cues were needed to reach a decision
+            outcomes  = []   # what the coin flip revealed ("up" or "down")
+            wealths   = []   # wealth after each gamble is resolved
+
+            for _, gamble in self.gamble_data.iterrows():
+
+                # ── Step 1: the FFT inspects the gamble and makes a decision ──────
+
+                # Pull the four fractal payoff values that describe this gamble.
+                x_left_up    = gamble[self.required_args[0]]
+                x_left_down  = gamble[self.required_args[1]]
+                x_right_up   = gamble[self.required_args[2]]
+                x_right_down = gamble[self.required_args[3]]
+
+                fractal_values = {
+                    "x_left_up":    x_left_up,
+                    "x_left_down":  x_left_down,
+                    "x_right_up":   x_right_up,
+                    "x_right_down": x_right_down,
+                }
+
+                # Pass any extra arguments the FFT might need (beyond the four fractals).
+                # If wealth is one of the required arguments, make sure to pass the current wealth value.
+                extra_args = {}
+                for arg in self.required_args[4:]:
+                    if arg == "wealth":
+                        extra_args["wealth"] = wealth
+                    else:
+                        extra_args[arg] = gamble[arg]
+        
+                # Decide which side to choose based on the FFT's decision rule
+                _, side, n_cues = fft.decide(
+                    x_left_up, x_left_down,
+                    x_right_up, x_right_down,
+                    **extra_args
+                )
+
+                # ── Step 2: flip a coin to reveal what actually happened ──────────
+                coin = np.random.choice(["up", "down"])
+
+                # The payoff is the fractal value for whichever side was chosen
+                # and whatever the coin showed.
+                payoff = fractal_values[f"x_{side}_{coin}"]
+
+                # ── Step 3: update wealth based on the dynamic (multiply or add) ──
+
+                if self.dynamic == "multiplicative":
+                    wealth = wealth * np.exp(payoff)
+                elif self.dynamic == "additive":
+                    wealth = wealth + payoff
+
+                # ── Record what happened this time step ───────────────────────────
+
+                decisions.append(side)
+                cues_used.append(n_cues)
+                outcomes.append(coin)
+                wealths.append(wealth)
+
+            # Store all four metric series for this FFT and run.
+            for metric, values in [("decision",  decisions),
+                                    ("cues_used", cues_used),
+                                    ("outcome",   outcomes),
+                                    ("wealth",    wealths)]:
+                collected[(fft.id, run, metric)] = values
+
+        # ── Assemble the multi-index DataFrame ────────────────────────────────────
+
+        multi_index = pd.MultiIndex.from_tuples(
+            collected.keys(),
+            names=["fft_id", "run", "metric"]
+        )
+
+        # Save the collected results into a DataFrame with a multi-index (fft_id, run, metric) and columns corresponding to the gamble_data index values. 
+        # Transpose so that gambles are rows and metrics are columns.
+        result_df = pd.DataFrame(
+            list(collected.values()),
+            index=multi_index,
+            columns=self.gamble_data.index
+        ).T
+        
+        # ── Accumulate into the master results record ─────────────────────────────
+
+        if self.results is None:
+            self.results = result_df
+        else:
+            self.results = pd.concat([self.results, result_df])
+
+        return self.results
+    
+    '''
     def run_experiment(self,
                           initial_wealth: float = None,
                           random_seed: int = None
@@ -156,6 +292,7 @@ class Experiment:
         self.gamble_data = df
 
         return df
+    '''
 
     def accuracy(self, FFT_id: str, reference_id: str, run_no: int = None) -> float:
         # This method calculates the accuracy of the FFT's decisions at a given run compared to the
