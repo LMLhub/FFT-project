@@ -95,7 +95,6 @@ def test_wealth_trajectory():
     print(f"Frugality of fft2 at run 1 and 2: {frugality_result:.2f}")
     print(experiment.random_seeds)
 
-
 def main():
     create_cues()
     test_wealth_trajectory()
