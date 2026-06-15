@@ -1,8 +1,5 @@
-from ast import arg
-
 import pandas as pd
 import numpy as np
-import yaml
 import logging
 logger = logging.getLogger(__name__)
 
@@ -242,71 +239,36 @@ class Experiment:
         # Return accuracy as the proportion of decisions that match the reference.
         return correct_decisions / number_of_decisions
     
-    ''' 
-    def accuracy(self, FFT_id: str, reference_id: str, run_no: int = None) -> float:
-        # This method calculates the accuracy of the FFT's decisions at a given run compared to the
-        # optimal decisions based on the gamble_data.
-        if run_no is not None:
-            if isinstance(run_no, int):
-                runs = [run_no]
-            else:
-                runs = run_no
-        else:
-            runs = range(1, self.runs + 1)
+    def frugality(self, fft_id: str, run_no: int = None) -> float:
+        # This method calculates the frugality of the FFT's decisions across one or more runs,
+        # defined as the average number of cues used to make a decision.
 
-        correct_decisions = 0
-        number_of_decisions = 0
-        for run in runs:
-            decision = f"{FFT_id}_decision_{run}"
-            reference_decisions = f"{reference_id}_decision_{run}"
-            # print(f"Calculating accuracy for run {run} - Decision column: {decision}, Reference decisions column: {reference_decisions}")
-            
-            # Check that the decision column for the given run exists in the gamble_data dataframe
-            if decision not in self.gamble_data.columns:
-                logger.error(f"Decision column '{decision}' not found in gamble_data.")
-                raise ValueError(f"Decision column '{decision}' not found in gamble_data.")
-        
-            # Check that the reference_decisions column exists in the gamble_data dataframe
-            if reference_decisions not in self.gamble_data.columns:
-                logger.error(f"Reference decisions column '{reference_decisions}' not found in gamble_data.")
-                raise ValueError(f"Reference decisions column '{reference_decisions}' not found in gamble_data.")
-        
-            # Calculate accuracy as the proportion of decisions that match the reference decisions
-            correct_decisions += (self.gamble_data[decision] == self.gamble_data[reference_decisions]).sum()
-            number_of_decisions += len(self.gamble_data[decision].dropna())
-            
-        accuracy = correct_decisions/number_of_decisions
-        
-        return accuracy
-    '''
-    def frugality(self, FFT_id: str, run_no: int = None) -> float:
-        # This method calculates the frugality of the FFT's decisions at a given run, which is defined as the average number of cues used to make a decision.
+        # Determine which runs to evaluate.
         if run_no is None:
-            runs = range(1,self.runs+1)
-        else:
+            runs = range(1, self.runs + 1)
+        elif isinstance(run_no, int):
             runs = [run_no]
-        
+        else:
+            runs = run_no
+
         total_cues_used = 0
         total_decisions = 0
 
         for run in runs:
-            cues_used = f"{FFT_id}_cues_used_{run}"
-        
-            # Check that the cues_used column for the given run exists in the gamble_data dataframe
-            if cues_used not in self.gamble_data.columns:
-                logger.error(f"Cues used column '{cues_used}' not found in gamble_data.")
-                raise ValueError(f"Cues used column '{cues_used}' not found in gamble_data.")
-            if cues_used in self.gamble_data.columns:
-                total_cues_used += self.gamble_data[cues_used].sum()
-                total_decisions += len(self.gamble_data[cues_used].dropna())
+
+            # Check that the cues_used series exists for this FFT and run.
+            if (fft_id, run, "cues_used") not in self.results.columns:
+                logger.error(f"Cues used column for FFT '{fft_id}' run {run} not found in results.")
+                raise ValueError(f"Cues used column for FFT '{fft_id}' run {run} not found in results.")
+
+            cues_used = self.results[(fft_id, run, "cues_used")]
+
+            total_cues_used += cues_used.sum()
+            total_decisions += len(cues_used)
 
         if total_decisions == 0:
-            return 0
+            logger.warning(f"No decisions found for FFT '{fft_id}' in the specified runs.")
+            raise ValueError(f"No decisions found for FFT '{fft_id}' in the specified runs.")
 
         return total_cues_used / total_decisions
-        
-                
-        # Calculate frugality as the average number of cues used across all decisions
-        average_cues_used = self.gamble_data[cues_used].mean()
-        
-        return average_cues_used
+    
