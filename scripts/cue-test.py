@@ -23,12 +23,11 @@ def main():
 
     c02 = Cue(
         id="c02",
-        name="Growth Rate - additive",
-        description="This cue compares the additive growth rates of the gambles and picks the side with the highest rate.",
+        name="Growth Rate",
+        description="This cue compares the growth rates of the gambles and picks the side with the highest rate. Works for both additive and multiplicative dynamics.",
         feature= growth_rate,
         type="numerical",
         threshold=0,
-        params={"dynamic": "additive"},
         required_args=["output_left_up", "output_left_down", "output_right_up", "output_right_down"]
     )
 
