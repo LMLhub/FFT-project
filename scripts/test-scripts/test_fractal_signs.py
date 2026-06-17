@@ -143,13 +143,13 @@ def test_feature_function_2():
     #Tests that g2 values do not affect the result.
 
     # g1 has two positive fractals (50.0, 108.5), so the function returns 2
-    assert signs(50.0, 108.5, -407.0, -305.5, dynamic="additive") == 2
+    assert signs(50.0, 108.5, -407.0, -305.5) == 2
     # g1 has one positive (50.0) and one negative (-407.0), so the function returns 1
-    assert signs(50.0, -407.0, -305.5, 108.5, dynamic="additive") == 1
+    assert signs(50.0, -407.0, -305.5, 108.5) == 1
     # g1 has two negative fractals (-407.0, -305.5), so the function returns 0
-    assert signs(-407.0, -305.5, 50.0, 108.5, dynamic="additive") == 0
+    assert signs(-407.0, -305.5, 50.0, 108.5) == 0
     # g2 has two negative fractals but g1 has two positive, so the function still returns 2
-    assert signs(50.0, 108.5, -407.0, -407.0, dynamic="additive") == 2
+    assert signs(50.0, 108.5, -407.0, -407.0) == 2
 
     print("feature function: all tests passed.")
 
@@ -166,7 +166,6 @@ def test_cue_evaluate_2():
         feature     = signs,
         type        = "numerical",
         threshold   = 0,
-        params      = {"dynamic": "additive"},
         required_args = ["gamma_left_up", "gamma_left_down",
                          "gamma_right_up", "gamma_right_down"],
     )
@@ -208,7 +207,6 @@ def test_cue_evaluate_df_2():
         feature     = signs,
         type        = "numerical",
         threshold   = 0,
-        params      = {"dynamic": "additive"},
         required_args = ["gamma_left_up", "gamma_left_down",
                          "gamma_right_up", "gamma_right_down"],
     )
@@ -246,15 +244,6 @@ def test_cue_evaluate_df_2():
     print("Cue.evaluate_df: all tests passed.")
 
 
-def test_invalid_fractal_value_2():
-    #Tests that a ValueError is raised if a gamble value is not in fractal_values.
-    try:
-        signs(999.0, 108.5, -407.0, -305.5, dynamic="test")
-        assert False, "Should have raised ValueError"
-    except ValueError:
-        pass
-    print("invalid fractal value: correctly raised ValueError.")
-
 if __name__ == "__main__":
     test_feature_function()
     test_cue_evaluate()
@@ -263,5 +252,4 @@ if __name__ == "__main__":
     test_feature_function_2()
     test_cue_evaluate_2()
     test_cue_evaluate_df_2()
-    test_invalid_fractal_value_2()
     print("\nAll tests passed.")

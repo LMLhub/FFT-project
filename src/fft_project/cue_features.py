@@ -58,28 +58,16 @@ def fractal_signs(g1_up, g1_down, g2_up, g2_down, fractal_values):
         count += 1
     return count
 
-def signs(g1_up, g1_down, g2_up, g2_down, dynamic):
+def signs(g1_up, g1_down, g2_up, g2_down):
     #Counts the number of fractal values in gamble 1 that leads to an increase in wealth.
     #Returns 2 if both g1_up and g1_down lead to an increase.
     #Returns 1 if only one of g1_up or g1_down leads to an increase.
     #Returns 0 if neither g1_up nor g1_down leads to an increase.
     #g2_up and g2_down are not used here, but the Cue class always passes both gambles.
     count = 0
-    if dynamic == "multiplicative":
-        if g1_up <= 0 or g1_down <= 0:
-            logger.error(f"Gamble values {g1_up}, {g1_down} must be positive for multiplicative dynamics.")
-            raise ValueError(f"Gamble values {g1_up}, {g1_down} must be positive for multiplicative dynamics.")
-        if g1_up > 1:
-            count += 1
-        if g1_down > 1:
-            count += 1
-    elif dynamic == "additive":
-        if g1_up > 0:
-            count += 1
-        if g1_down > 0:
-            count += 1
-    else:
-        logger.error(f"Invalid dynamic. Must be 'multiplicative' or 'additive'.")
-        raise ValueError(f"Invalid dynamic. Must be 'multiplicative' or 'additive'.")
+    if g1_up > 0:
+       count += 1
+    if g1_down > 0:
+       count += 1
     return count
 
