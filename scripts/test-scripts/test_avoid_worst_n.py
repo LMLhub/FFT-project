@@ -3,8 +3,8 @@
 #Tests the feature function directly and as a Cue object.
 import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 import pandas as pd
 from fft_project.cue_class import Cue

@@ -2,6 +2,11 @@
 # It creates an instance of the Cue class and FFT class, evaluates it on some sample gamble data,
 # and prints the results.
 # This script can be deleted after the FFT class testing is complete.
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from fft_project.cue_class import Cue
 from fft_project.decision_class import FFT
