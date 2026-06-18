@@ -76,20 +76,51 @@ class Experiment:
 
     def run_experiment(self,
                     initial_wealth: float = None,
-                    random_seed: int = None
+                    random_seed: int = None,
+                    wealth_update: str = None #Choose "process" "constant" "data"
                     ) -> pd.DataFrame:
         """
         For each FFT, walk through every gamble in sequence:
         1. Ask the FFT to make a decision (left or right).
         2. Flip a coin to reveal the outcome (up or down).
-        3. Update wealth based on what was decided and what happened.
-        
+        3. Update wealth based on what was decided and what happened and wealth_update method.
+            - If wealth_update is "process", update wealth based on the experiment dynamic (multiply or add).
+            - If wealth_update is "constant", keep wealth constant across all gambles.
+            - If wealth_update is "data", update wealth based on the gamble data (if a column "wealth" is provided, otherwise raise an error).
+            
         Returns a multi-index DataFrame indexed by (fft_id, run, metric),
         with gamble_data index values as columns, accumulated across all runs
         in self.results.
         """
+        # ── Initial checks ─────────────────────────────────────────────────────────────────
+        if self.gamble_data is None:
+            logger.error("Gamble data must be provided to run the experiment.")
+            raise ValueError("Gamble data must be provided to run the experiment.")
+        
+        if self.dynamic not in ["multiplicative", "additive"]:
+            logger.error("Dynamic must be either 'multiplicative' or 'additive'.")
+            raise ValueError("Dynamic must be either 'multiplicative' or 'additive'.")
+        
+        if initial_wealth is None and self.initial_wealth is None and (wealth_update != "data"):
+            logger.error("Initial wealth must be provided either as an argument to run_experiment or as an attribute of the Experiment.")
+            raise ValueError("Initial wealth must be provided either as an argument to run_experiment or as an attribute of the Experiment.")
+        
+        if wealth_update not in [None, "process", "constant", "data"]:
+            logger.error("wealth_update must be one of 'process', 'constant', 'data', or None.")
+            raise ValueError("wealth_update must be one of 'process', 'constant', 'data', or None.")
+        
+        if (wealth_update == "data") and (initial_wealth is not None):
+            logger.warning("WARNING: Both initial wealth and data passed - data is used")
+            
+        if wealth_update == "data" and "wealth" not in self.gamble_data.columns:
+            logger.error("wealth_update indicates data as wealth source, but there is no 'wealth' column in data")
+            raise ValueError("wealth_update indicates data as wealth source, but there is no 'wealth' column in data")
 
         # ── Setup ─────────────────────────────────────────────────────────────────
+
+        # If wealth_update is None, set to default "process".
+        if wealth_update is None:
+            wealth_update = "process"
 
         # Set the random seed (for reproduction).
         if random_seed is None:
@@ -101,10 +132,6 @@ class Experiment:
         self.runs += 1
         run = self.runs
 
-        # If no initial wealth is provided, use default.
-        if initial_wealth is None:
-            initial_wealth = self.initial_wealth
-
         # ── Run every FFT through every gamble ────────────────────────────────────
         # Initialize a dictionary to collect results for all FFTs and runs.
         collected = {}
@@ -112,14 +139,21 @@ class Experiment:
         #Run each FFT through the gamble data
         for fft in self.ffts:
 
-            # Each FFT starts the run with the same initial wealth.
-            wealth = initial_wealth
+            # Unless data is chosen each FFT starts the run with the same initial wealth.
+            if wealth_update != "data":
+                # If no initial wealth is provided, use default.
+                if initial_wealth is None:
+                    initial_wealth = self.initial_wealth
+                wealth = initial_wealth
 
             # Prepare empty result lists for this FFT / run combination.
             decisions = []   # which side the FFT chose  ("left" or "right")
             cues_used = []   # how many cues were needed to reach a decision
             outcomes  = []   # what the coin flip revealed ("up" or "down")
-            wealths   = []   # wealth after each gamble is resolved
+            wealths_pre   = []   # wealth before the gamble is resolved
+            wealths_post = []   # wealth after the gamble is resolved
+            realised_gammas = [] # the actual growth rate of the chosen option
+            average_gammas = [] # the time-average growth rate of the chosen option (averaged across the two possible outcomes, given gammas are ergodic measures)
 
             for _, gamble in self.gamble_data.iterrows():
 
@@ -137,6 +171,13 @@ class Experiment:
                     "x_right_up":   x_right_up,
                     "x_right_down": x_right_down,
                 }
+
+                # If wealth_update is data, then collect the wealth from dataset:
+                if wealth_update == "data":
+                    wealth = gamble["wealth"]
+                
+                # Save starting wealth:
+                wealths_pre.append(wealth)
 
                 # Pass any extra arguments the FFT might need (beyond the four fractals).
                 # If wealth is one of the required arguments, make sure to pass the current wealth value.
@@ -162,24 +203,37 @@ class Experiment:
                 payoff = fractal_values[f"x_{side}_{coin}"]
 
                 # ── Step 3: update wealth based on the dynamic (multiply or add) ──
-
                 if self.dynamic == "multiplicative":
-                    wealth = wealth * np.exp(payoff)
+                    final_wealth = wealth * np.exp(payoff)
                 elif self.dynamic == "additive":
-                    wealth = wealth + payoff
+                    final_wealth = wealth + payoff
+                
+                # Update inital wealth for next round
+                if wealth_update == "constant":
+                    pass # wealth stays the same
+
+                elif wealth_update == "process":
+                    wealth = final_wealth #next round's wealth is final wealth of this round 
 
                 # ── Record what happened this time step ───────────────────────────
+                average_gamma = (fractal_values[f"x_{side}_up"] + fractal_values[f"x_{side}_down"]) / 2
+                realised_gamma = payoff
 
                 decisions.append(side)
                 cues_used.append(n_cues)
                 outcomes.append(coin)
-                wealths.append(wealth)
+                wealths_post.append(final_wealth)
+                average_gammas.append(average_gamma)
+                realised_gammas.append(realised_gamma)
 
             # Store all four metric series for this FFT and run.
             for metric, values in [("decision",  decisions),
                                     ("cues_used", cues_used),
                                     ("outcome",   outcomes),
-                                    ("wealth",    wealths)]:
+                                    ("wealth_pre",    wealths_pre),
+                                    ("wealth_post",    wealths_post),
+                                    ("average_gamma", average_gammas),
+                                    ("realised_gamma", realised_gammas)]:
                 collected[(fft.id, run, metric)] = values
 
         # ── Assemble the multi-index DataFrame ────────────────────────────────────
