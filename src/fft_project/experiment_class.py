@@ -44,11 +44,6 @@ class Experiment:
             logger.error("Dynamic must be either 'multiplicative' or 'additive'.")
             raise ValueError("Dynamic must be either 'multiplicative' or 'additive'.")
         
-        # Check that initial_wealth is provided        
-        if initial_wealth is None:
-            logger.error("initial_wealth must be provided to calculate wealth trajectory.")
-            raise ValueError("initial_wealth must be provided to calculate wealth trajectory.")
-
         #Retrieve the required arguments for the cues in the FFT.
         self.required_args = []
         for fft in self.ffts:
@@ -227,13 +222,14 @@ class Experiment:
                 realised_gammas.append(realised_gamma)
 
             # Store all four metric series for this FFT and run.
-            for metric, values in [("decision",  decisions),
+            # Names set to match the names of the experimental data
+            for metric, values in [("selected_side",  decisions),
                                     ("cues_used", cues_used),
-                                    ("outcome",   outcomes),
+                                    ("gamble_up",   outcomes),
                                     ("wealth_pre",    wealths_pre),
                                     ("wealth_post",    wealths_post),
-                                    ("average_gamma", average_gammas),
-                                    ("realised_gamma", realised_gammas)]:
+                                    ("chosen_expected_gamma", average_gammas),
+                                    ("realized_gamma", realised_gammas)]:
                 collected[(fft.id, run, metric)] = values
 
         # ── Assemble the multi-index DataFrame ────────────────────────────────────
@@ -261,9 +257,9 @@ class Experiment:
         return self.results
     
     def accuracy(self, fft_id: str, reference_id: str, run_no: int = None) -> float:
-    # This method calculates the accuracy of the FFT's decisions compared to the
-    # optimal decisions of a reference FFT, across one or more runs.
-    # Determine which runs to evaluate.
+        # This method calculates the accuracy of the FFT's decisions compared to the
+        # optimal decisions of a reference FFT, across one or more runs.
+        # Determine which runs to evaluate.
         if run_no is None:
             runs = range(1, self.runs + 1) #if no run number is provided, evaluate all runs
         elif isinstance(run_no, int):
@@ -277,17 +273,17 @@ class Experiment:
         for run in runs:
 
             # Check that the decision series exists for the FFT and the reference.
-            if (fft_id, run, "decision") not in self.results.columns:
+            if (fft_id, run, "selected_side") not in self.results.columns:
                 logger.error(f"Decision column for FFT '{fft_id}' run {run} not found in results.")
                 raise ValueError(f"Decision column for FFT '{fft_id}' run {run} not found in results.")
 
-            if (reference_id, run, "decision") not in self.results.columns:
+            if (reference_id, run, "selected_side") not in self.results.columns:
                 logger.error(f"Decision column for reference FFT '{reference_id}' run {run} not found in results.")
                 raise ValueError(f"Decision column for reference FFT '{reference_id}' run {run} not found in results.")
 
             # Pull the decision series for this run.
-            fft_decisions       = self.results[(fft_id,       run, "decision")]
-            reference_decisions = self.results[(reference_id, run, "decision")]
+            fft_decisions       = self.results[(fft_id,       run, "selected_side")]
+            reference_decisions = self.results[(reference_id, run, "selected_side")]
 
             # Count the number of correct decisions (where the FFT's decision matches the reference)
             # and the total number of decisions.
