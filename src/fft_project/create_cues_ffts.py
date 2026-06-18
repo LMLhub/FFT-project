@@ -96,23 +96,11 @@ def create_cues():
     )
 
     Cue(
-        id          = "fs_m",
-        name        = "Positive fractal signs - multiplicative",
-        description = "Give preference to the gamble with the most fractals that leads to an increase in wealth - multiplicative",
+        id          = "fs",
+        name        = "Positive fractal signs",
+        description = "Give preference to the gamble with the most fractals that leads to an increase in wealth",
         feature     = signs,
         type        = "boolean",
-        params      = {"dynamic": "multiplicative",},
-        required_args = ["gamma_left_up", "gamma_left_down",
-                         "gamma_right_up", "gamma_right_down"],
-    )
-
-    Cue(
-        id          = "fs_a",
-        name        = "Positive fractal signs - additive",
-        description = "Give preference to the gamble with the most fractals that leads to an increase in wealth - additive",
-        feature     = signs,
-        type        = "boolean",
-        params      = {"dynamic": "additive",},
         required_args = ["gamma_left_up", "gamma_left_down",
                          "gamma_right_up", "gamma_right_down"],
     )
@@ -137,7 +125,7 @@ def create_ffts():
     FFT(id="fft_eu_1_5_a",
         name="Expected Isoelastic Utility - eta=1.5, additive",
         description="An example FFT with the expected isoelastic utility cue.",
-        cues=[Cue.cue_registry["eu_1_5_add"]])
+        cues=[Cue.cue_registry["eu_1_5_a"]])
     
     FFT(id="fft_eu_1_5_m",
         name="Expected Isoelastic Utility - eta=1.5, multiplicative",
@@ -154,16 +142,21 @@ def create_ffts():
         description="An example FFT with the avoid the worst cue.",
         cues=[Cue.cue_registry["aw_2_m"]])  
     
-    FFT(id="fft_fs_m",
-        name="Positive fractal signs - multiplicative",
-        description="An example FFT with the positive fractal signs cue.",
-        cues=[Cue.cue_registry["fs_m"]])
+    FFT(id="fft_fs",
+        name="Positive fractal signs",
+        description="An example FFT with the positive fractal signs cue. Works for both dynamics.",
+        cues=[Cue.cue_registry["fs"]])
     
-    FFT(id="fft_fs_a",
-        name="Positive fractal signs - additive",
-        description="An example FFT with the positive fractal signs cue.",
-        cues=[Cue.cue_registry["fs_a"]])
-    
+    FFT(id="fft_aw_1_fs_a",
+        name="Avoid the worst then positive fractal signs - additive",
+        description="FFT with the avoid the worst first, then choose based on positive fractal signs. Additive dynamic.",
+        cues=[Cue.cue_registry["aw_1_a"], Cue.cue_registry["fs"]])
+
+    FFT(id="fft_fs_aw_1_a",
+        name="Positive fractal signs then avoid the worst then p- additive",
+        description="FFT with positive fractal signs then the avoid the worst first. Additive dynamic.",
+        cues=[ Cue.cue_registry["fs"], Cue.cue_registry["aw_1_a"]])
+     
 if __name__ == "__main__":
     create_cues()
     create_ffts()
