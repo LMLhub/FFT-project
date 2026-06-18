@@ -150,7 +150,7 @@ def test_multi_wealth_trajectory():
 
 def test_multi_wealth_trajectory_sim_data():
     # Create a sample gamble_data dataframe with multiplicative data
-    gamble_data_multi = simulate_gamble_data(100,
+    gamble_data_multi = simulate_gamble_data(10,
                               FRACTAL_VALUES_MULTI,
                               True,
                               True,
@@ -158,6 +158,9 @@ def test_multi_wealth_trajectory_sim_data():
                               None,
                               42)
     print(gamble_data_multi.head())
+
+    import numpy as np
+    gamble_data_multi["wealth"] = np.ones(len(gamble_data_multi))*100
 
     Experiment(
         id="exp3",
@@ -169,7 +172,7 @@ def test_multi_wealth_trajectory_sim_data():
         dynamic="multiplicative"
     )
 
-    trajectory_result = Experiment.experiment_registry['exp3'].run_experiment()
+    trajectory_result = Experiment.experiment_registry['exp3'].run_experiment(initial_wealth = 1000, wealth_update = "data")
     print(trajectory_result)
 
 def main():
