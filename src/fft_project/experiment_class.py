@@ -54,9 +54,13 @@ class Experiment:
         for fft in self.ffts:
             self.required_args.extend(fft.retrieve_required_args())
 
-        # Check that required arguments are present in the gamble_data dataframe
+        # Check that required arguments are present in the gamble_data dataframe.
+        # wealth is an exception because it may not be a column in the gamble_data
+        # but is updated on the way.
         if self.gamble_data is not None:
             missing_args = [arg for arg in self.required_args if arg not in self.gamble_data.columns]
+            if "wealth" in missing_args:
+                missing_args.remove("wealth")
             if missing_args:
                 logger.error(f"Gamble data is missing required arguments: {missing_args}")
                 raise ValueError(f"Gamble data is missing required arguments: {missing_args}")
