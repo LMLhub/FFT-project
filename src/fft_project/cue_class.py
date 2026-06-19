@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import inspect
 import yaml
+import copy
 
 class Cue:
     '''
@@ -69,6 +70,43 @@ class Cue:
             raise ValueError(f"Cue with id '{self.id}' already exists. IDs must be unique.")
 
         Cue.cue_registry[self.id] = self
+
+    def copy(self):
+        """
+        Return a copy of this cue registered with id '<old_id>_copy'.
+
+        The copied cue uses the same feature function, but gets its own copies of
+        mutable fields such as params and required_args.
+        """
+        copied_id = f"{self.id}_copy"
+
+        if copied_id in Cue.cue_registry:
+            raise ValueError(f"Cue with id '{copied_id}' already exists. IDs must be unique.")
+
+        copied_cue = self.__class__.__new__(self.__class__)
+
+        for attr, value in self.__dict__.items():
+            if attr == "id":
+                setattr(copied_cue, attr, copied_id)
+            else:
+                setattr(copied_cue, attr, copy.copy(value))
+
+        Cue.cue_registry[copied_id] = copied_cue
+        return copied_cue
+
+    def delete(self):
+        """
+        Remove this cue from the cue registry.
+
+        Existing Python references to the object may still exist, but the cue will
+        no longer be discoverable through Cue.cue_registry.
+        """
+        if Cue.cue_registry.get(self.id) is self:
+            del Cue.cue_registry[self.id]
+            return
+
+        if self.id in Cue.cue_registry:
+            raise ValueError(f"Cue registry id '{self.id}' points to a different object.")
 
 
     def evaluate(self, x_left_up, x_left_down, x_right_up, x_right_down, **extra_args):

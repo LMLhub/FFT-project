@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import logging
+import copy
 logger = logging.getLogger(__name__)
 
 from .cue_class import Cue
@@ -68,6 +69,49 @@ class Experiment:
             logger.error(f"Experiment with id '{self.id}' already exists. IDs must be unique.")
             raise ValueError(f"Experiment with id '{self.id}' already exists. IDs must be unique.")
         Experiment.experiment_registry[self.id] = self
+
+    def copy(self):
+        """
+        Return a copy of this experiment registered with id '<old_id>_copy'.
+
+        The copied experiment shares the same FFT objects, but gets its own copies
+        of mutable experiment state such as lists, dictionaries, and dataframes.
+        """
+        copied_id = f"{self.id}_copy"
+
+        if copied_id in Experiment.experiment_registry:
+            logger.error(f"Experiment with id '{copied_id}' already exists. IDs must be unique.")
+            raise ValueError(f"Experiment with id '{copied_id}' already exists. IDs must be unique.")
+
+        copied_experiment = self.__class__.__new__(self.__class__)
+
+        for attr, value in self.__dict__.items():
+            if attr == "id":
+                setattr(copied_experiment, attr, copied_id)
+            elif isinstance(value, pd.DataFrame):
+                setattr(copied_experiment, attr, value.copy(deep=True))
+            else:
+                setattr(copied_experiment, attr, copy.copy(value))
+
+        Experiment.experiment_registry[copied_id] = copied_experiment
+        return copied_experiment
+
+    def delete(self):
+        """
+        Remove this experiment from the experiment registry.
+
+        Existing Python references to the object may still exist, but the experiment
+        will no longer be discoverable through Experiment.experiment_registry.
+        """
+        if Experiment.experiment_registry.get(self.id) is self:
+            del Experiment.experiment_registry[self.id]
+            return
+
+        if self.id in Experiment.experiment_registry:
+            logger.error(f"Experiment registry id '{self.id}' points to a different object.")
+            raise ValueError(f"Experiment registry id '{self.id}' points to a different object.")
+
+        logger.warning(f"Experiment with id '{self.id}' is not registered.")
 
     def run_experiment(self,
                     initial_wealth: float = None,
