@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import yaml
 import logging
+import copy
 logger = logging.getLogger(__name__)
 
 class FFT: 
@@ -32,6 +33,47 @@ class FFT:
             logger.error(f"FFT with id '{self.id}' already exists. IDs must be unique.")
             raise ValueError(f"FFT with id '{self.id}' already exists. IDs must be unique.")
         FFT.FFT_registry[self.id] = self
+
+    def copy(self):
+        """
+        Return a copy of this FFT registered with id '<old_id>_copy'.
+
+        The copied FFT keeps references to the same cue objects, but gets its own
+        copy of the cues list and other mutable fields.
+        """
+        copied_id = f"{self.id}_copy"
+
+        if copied_id in FFT.FFT_registry:
+            logger.error(f"FFT with id '{copied_id}' already exists. IDs must be unique.")
+            raise ValueError(f"FFT with id '{copied_id}' already exists. IDs must be unique.")
+
+        copied_fft = self.__class__.__new__(self.__class__)
+
+        for attr, value in self.__dict__.items():
+            if attr == "id":
+                setattr(copied_fft, attr, copied_id)
+            else:
+                setattr(copied_fft, attr, copy.copy(value))
+
+        FFT.FFT_registry[copied_id] = copied_fft
+        return copied_fft
+
+    def delete(self):
+        """
+        Remove this FFT from the FFT registry.
+
+        Existing Python references to the object may still exist, but the FFT will
+        no longer be discoverable through FFT.FFT_registry.
+        """
+        if FFT.FFT_registry.get(self.id) is self:
+            del FFT.FFT_registry[self.id]
+            return
+
+        if self.id in FFT.FFT_registry:
+            logger.error(f"FFT registry id '{self.id}' points to a different object.")
+            raise ValueError(f"FFT registry id '{self.id}' points to a different object.")
+
+        logger.warning(f"FFT with id '{self.id}' is not registered.")
 
     def to_dict(self):
         return {
