@@ -116,7 +116,8 @@ class Experiment:
     def run_experiment(self,
                     initial_wealth: float = None,
                     random_seed: int = None,
-                    wealth_update: str = None #Choose "process" "constant" "data"
+                    wealth_update: str = None, #Choose "process" "constant" "data"
+                    save_results: bool = True
                     ) -> pd.DataFrame:
         """
         For each FFT, walk through every gamble in sequence:
@@ -292,13 +293,15 @@ class Experiment:
         ).T
         
         # ── Update results of experiment object ─────────────────────────────
-        if self.results is None:
-            self.results = result_df
-        else:
-            self.results = pd.concat([self.results, result_df], axis=1)
+        if save_results:
+            if self.results is None:
+                self.results = result_df
+            else:
+                self.results = pd.concat([self.results, result_df], axis=1)
 
-        # Return the result dataframe for all experiments runs so far.
-        return self.results
+            # Return the result dataframe for all experiments runs so far.
+            return self.results
+        return result_df
     
     def accuracy(self, fft_id: str, reference_id: str, run_no: int = None) -> float:
         # This method calculates the accuracy of the FFT's decisions compared to the
@@ -370,3 +373,54 @@ class Experiment:
 
         return total_cues_used / total_decisions
     
+    def eta_compare(eta, fft_id):
+        # This method compares the decisions of an FFT with a given eta value to the decisions of another FFT across one or more runs,
+        # and returns the accuracy of the eta-based FFT's decisions compared to the other FFT's decisions.
+
+        # Create a new cue and fft with the given eta value
+        cue = Cue(
+            id=f"eu_{eta}_{self.dynamic[0]}",
+            name=f"Expected Isoelastic Utility - eta={eta}, {self.dynamic}",
+            description=f"This cue that evaluates the expected isoelastic utility of the first gamble with eta={eta} and {self.dynamic} dynamics and picks a side if the cue value is greater than 2.",
+            feature= expected_isoelastic_utility,
+            type="numerical",
+            threshold=0,
+            params={"dynamic": self.dynamic,
+                "eta": eta},
+            required_args=["gamma_left_up", "gamma_left_down", "gamma_right_up", "gamma_right_down", "wealth"]
+        )
+
+        #Create a new FFT with the new cue and the same dynamic as the experiment
+        fft_eu_temp = FFT(
+            id=f"fft_eu_{eta}_{self.dynamic[0]}",
+            cues=[cue],
+            dynamic=self.dynamic,
+            name=f"FFT with expected isoelastic utility cue with eta={eta} and {self.dynamic} dynamics",
+            description=f"FFT that uses the expected isoelastic utility cue with eta={eta} and {self.dynamic} dynamics to make decisions."
+        )
+
+        # Make a copy of the experiment to avoid modifying the original experiment data.
+        exp_copy = self.copy()
+        
+        #Save the last run_no of the experiment
+        runs = exp_copy.runs
+
+        # Add wealth_pre of the latest run of the fft_id to the gamble data
+        exp_copy.gamble_data["wealth"] = exp_copy.results[(fft_id, runs, "wealth_pre")]
+
+        # Run the experiment with the new FFT and the updated gamble data
+        exp_copy.ffts = [fft_eu_temp]
+        exp_copy.run_experiment(wealth_update="data", save_results = False)
+
+        #caluclate the accuracy of the new FFT's decisions compared to the decisions of the given fft_id
+        # Pull the decision series for this run.
+        fft_decisions       = exp_copy.results[(fft_id,       runs, "selected_side")]
+        reference_decisions = exp_copy.results[(fft_eu_temp.id, runs+1, "selected_side")]
+        
+        # Count the number of correct decisions (where the FFT's decision matches the reference)
+        # and the total number of decisions.
+        correct_decisions   = (fft_decisions == reference_decisions).sum()
+        number_of_decisions = len(fft_decisions)
+        
+        # Return accuracy as the proportion of decisions that match the reference.
+        return correct_decisions/number_of_decisions
