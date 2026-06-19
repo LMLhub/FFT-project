@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 from .cue_class import Cue
 from .decision_class import FFT
-
+from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility, signs
 
 
 class Experiment:
@@ -30,15 +30,8 @@ class Experiment:
         self.runs = 0                      #Counter for the number of times the experiment has been run.
         self.results = None   # accumulates result_df across runs
 
-        #Check that ffts is an list of the FFT class
-        if not isinstance(self.ffts, list):
-            logger.error("FFTs must be a list of FFT instances.")
-            raise ValueError("FFTs must be a list of FFT instances.")
-        else:
-            for fft in self.ffts:
-                if not isinstance(fft, FFT):
-                    logger.error("All items in ffts must be instances of the FFT class.")
-                    raise ValueError("All items in ffts must be instances of the FFT class.")
+        # Check that ffts are a list of fft objects.
+        self._validate_ffts()
 
         #Check that dynamic is either "multiplicative" or "additive"
         if self.dynamic not in ["multiplicative", "additive"]: 
@@ -46,29 +39,52 @@ class Experiment:
             raise ValueError("Dynamic must be either 'multiplicative' or 'additive'.")
         
         #Retrieve the required arguments for the cues in the FFT.
-        self.required_args = []
-        for fft in self.ffts:
-            self.required_args.extend(fft.retrieve_required_args())
+        self._refresh_required_args()
 
         # Check that required arguments are present in the gamble_data dataframe.
         # wealth is an exception because it may not be a column in the gamble_data
         # but is updated on the way.
-        if self.gamble_data is not None:
-            missing_args = [arg for arg in self.required_args if arg not in self.gamble_data.columns]
-            if "wealth" in missing_args:
-                missing_args.remove("wealth")
-            if missing_args:
-                logger.error(f"Gamble data is missing required arguments: {missing_args}")
-                raise ValueError(f"Gamble data is missing required arguments: {missing_args}")
-        else:
-            logger.error("Gamble data must be provided for the experiment.")
-            raise ValueError("Gamble data must be provided for the experiment.")
+        self._validate_gamble_data()
         
         #Add Experiment to registry
         if self.id in Experiment.experiment_registry:
             logger.error(f"Experiment with id '{self.id}' already exists. IDs must be unique.")
             raise ValueError(f"Experiment with id '{self.id}' already exists. IDs must be unique.")
         Experiment.experiment_registry[self.id] = self
+
+    def _validate_ffts(self):
+        # Checks the passed ffts is a list of FFT objects
+
+        if not isinstance(self.ffts, list):
+            logger.error("FFTs must be a list of FFT instances.")
+            raise ValueError("FFTs must be a list of FFT instances.")
+
+        for fft in self.ffts:
+            if not isinstance(fft, FFT):
+                logger.error("All items in ffts must be instances of the FFT class.")
+                raise ValueError("All items in ffts must be instances of the FFT class.")
+
+    def _refresh_required_args(self):
+        # Update the required args (useful in case ffts change)
+        self.required_args = []
+        for fft in self.ffts:
+            for arg in fft.retrieve_required_args():
+                if arg not in self.required_args:
+                    self.required_args.append(arg)
+
+    def _validate_gamble_data(self):
+        #Check whether the gamble data is available and does not miss any required args
+
+        if self.gamble_data is None:
+            logger.error("Gamble data must be provided for the experiment.")
+            raise ValueError("Gamble data must be provided for the experiment.")
+
+        missing_args = [arg for arg in self.required_args if arg not in self.gamble_data.columns]
+        if "wealth" in missing_args:
+            missing_args.remove("wealth")
+        if missing_args:
+            logger.error(f"Gamble data is missing required arguments: {missing_args}")
+            raise ValueError(f"Gamble data is missing required arguments: {missing_args}")
 
     def copy(self):
         """
@@ -132,6 +148,10 @@ class Experiment:
         with gamble_data index values as columns, accumulated across all runs
         in self.results.
         """
+        self._validate_ffts()
+        self._refresh_required_args()
+        self._validate_gamble_data()
+
         # ── Initial checks ─────────────────────────────────────────────────────────────────
         if self.gamble_data is None:
             logger.error("Gamble data must be provided to run the experiment.")
@@ -373,9 +393,17 @@ class Experiment:
 
         return total_cues_used / total_decisions
     
-    def eta_compare(eta, fft_id):
+    def eta_compare(self, eta, fft_id):
         # This method compares the decisions of an FFT with a given eta value to the decisions of another FFT across one or more runs,
         # and returns the accuracy of the eta-based FFT's decisions compared to the other FFT's decisions.
+        
+        #Save the last run_no of the experiment
+        runs = self.runs
+        
+        # Check that the fft_id experiment has been run
+        if self.results[(fft_id, runs, "wealth_pre")] is None:
+            logger.error(f"{fft_id} results not found. You must run experiment before you can compare to values of eta")
+            raise ValueError(f"{fft_id} results not found. You must run experiment before you can compare to values of eta")
 
         # Create a new cue and fft with the given eta value
         cue = Cue(
@@ -394,28 +422,24 @@ class Experiment:
         fft_eu_temp = FFT(
             id=f"fft_eu_{eta}_{self.dynamic[0]}",
             cues=[cue],
-            dynamic=self.dynamic,
             name=f"FFT with expected isoelastic utility cue with eta={eta} and {self.dynamic} dynamics",
             description=f"FFT that uses the expected isoelastic utility cue with eta={eta} and {self.dynamic} dynamics to make decisions."
         )
 
         # Make a copy of the experiment to avoid modifying the original experiment data.
         exp_copy = self.copy()
-        
-        #Save the last run_no of the experiment
-        runs = exp_copy.runs
 
         # Add wealth_pre of the latest run of the fft_id to the gamble data
         exp_copy.gamble_data["wealth"] = exp_copy.results[(fft_id, runs, "wealth_pre")]
-
+        
         # Run the experiment with the new FFT and the updated gamble data
         exp_copy.ffts = [fft_eu_temp]
-        exp_copy.run_experiment(wealth_update="data", save_results = False)
+        eta_results = exp_copy.run_experiment(wealth_update="data", save_results = False)
 
         #caluclate the accuracy of the new FFT's decisions compared to the decisions of the given fft_id
         # Pull the decision series for this run.
         fft_decisions       = exp_copy.results[(fft_id,       runs, "selected_side")]
-        reference_decisions = exp_copy.results[(fft_eu_temp.id, runs+1, "selected_side")]
+        reference_decisions = eta_results[(fft_eu_temp.id, runs+1, "selected_side")]
         
         # Count the number of correct decisions (where the FFT's decision matches the reference)
         # and the total number of decisions.
@@ -423,4 +447,28 @@ class Experiment:
         number_of_decisions = len(fft_decisions)
         
         # Return accuracy as the proportion of decisions that match the reference.
-        return correct_decisions/number_of_decisions
+        accuracy = correct_decisions/number_of_decisions
+        exp_copy.delete()
+        fft_eu_temp.delete()
+        cue.delete()
+        return accuracy
+
+    def eta_match(self, fft_id, eta_values = None):
+        # This method takes a experiment and a fft_id and
+        # and for a range of eta values, it calculates the accuracy of the FFT
+        # compared to the fft data.
+        
+        #If no eta value is given, use defalult.
+        if eta_values is None:
+            eta_values = np.arange(-2,5, 0.25)
+
+        accuracies = []
+
+        for eta in eta_values:
+            # calculate how good match the eta gives
+            accuracy = self.eta_compare(eta, fft_id)
+            
+            #saves eta and accuracy in an ordered list
+            accuracies.append(accuracy)
+
+        return eta_values, accuracies
