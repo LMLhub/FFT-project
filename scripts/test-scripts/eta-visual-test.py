@@ -91,6 +91,8 @@ def main_2():
     eta = 1
     print(f"Eta compare {eta}: ", experiment.eta_compare(eta, "fft_fs"))
 
+    print(f"Accuracy of eta values:", experiment.eta_match("fft_fs"))
+
 if __name__ == "__main__":
     initialise()
     #main()
