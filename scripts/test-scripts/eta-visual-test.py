@@ -22,10 +22,12 @@ from fft_project.prepare_experimental_data import prepare_experimental_data
 FRACTAL_VALUES = [-407.0, -305.5, -241.5, -49.0, 50.0, 108.5, 210.5, 309.5, 440.5]
 FRACTAL_VALUES_MULTI = [-0.850, -0.5395, -0.433, -0.1735, 0.006, 0.1685, 0.369, 0.5535, 0.772]
 
-def main():
+def initialise():
     create_cues()
     create_ffts()
 
+def main():
+    
     # Simulate some gamble data
     gamble_data = simulate_gamble_data(10, FRACTAL_VALUES, random_seed = 42)
 
@@ -63,6 +65,7 @@ def main_2():
     gamble_data, experimental_results = prepare_experimental_data(PROJECT_ROOT / "data/all_active_phase_data.csv")
     gamble_data_additive, gamble_data_multiplicative = gamble_data
     experimental_results_additive, experimental_results_multiplicative = experimental_results
+    experimental_results_additive.reset_index()
 
     print("Gamble Data:")
     print(gamble_data_additive.head())
@@ -78,10 +81,19 @@ def main_2():
                                   FFT.FFT_registry["fft_fs"],]
     )
     results = experiment.run_experiment(wealth_update="data", random_seed=42)
+    results = pd.concat([results, experimental_results_additive], axis=1)
+    experiment.results = results
 
     print("results:")
-    print(results.head())
+    print(results)
+    print("selected side in experiment:", results[("experiment_a",1,"selected_side")])
+
+    print("Accuracy fs vs experiment:",experiment.accuracy("fft_fs", "experiment_a"))
+    print("Accuracy experiment vs gr:",experiment.accuracy("experiment_a", "fft_gr"))
+    print("Accuracy gr vs experiment:",experiment.accuracy("fft_gr", "experiment_a"))
+    
 
 if __name__ == "__main__":
-    main()
+    initialise()
+    #main()
     main_2()
