@@ -1,10 +1,6 @@
 import sys
 from pathlib import Path
 
-from scipy import fft
-
-from scipy.fft import fft
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
@@ -84,14 +80,16 @@ def main_2():
     results = pd.concat([results, experimental_results_additive], axis=1)
     experiment.results = results
 
-    print("results:")
-    print(results)
-    print("selected side in experiment:", results[("experiment_a",1,"selected_side")])
+    #print("results:")
+    #print(results)
+    #print("selected side in experiment:", results[("experiment_a",1,"selected_side")])
 
-    print("Accuracy fs vs experiment:",experiment.accuracy("fft_fs", "experiment_a"))
-    print("Accuracy experiment vs gr:",experiment.accuracy("experiment_a", "fft_gr"))
-    print("Accuracy gr vs experiment:",experiment.accuracy("fft_gr", "experiment_a"))
+    #print("Accuracy fs vs experiment:",experiment.accuracy("fft_fs", "experiment_a"))
+    #print("Accuracy experiment vs gr:",experiment.accuracy("experiment_a", "fft_gr"))
+    #print("Accuracy gr vs experiment:",experiment.accuracy("fft_gr", "experiment_a"))
     
+    eta = 1
+    print(f"Eta compare {eta}: ", experiment.eta_compare(eta, "fft_fs"))
 
 if __name__ == "__main__":
     initialise()
