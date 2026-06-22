@@ -6,12 +6,15 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from fft_project.cue_class import Cue
 from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility, signs
+from fft_project.config import read_config_file
 import pandas as pd
 
 from fft_project.decision_class import FFT
 
-FRACTAL_VALUES = [-407.0, -305.5, -241.5, -49.0, 50.0, 108.5, 210.5, 309.5, 440.5]
-FRACTAL_VALUES_MULTI = [-0.850, -0.5395, -0.433, -0.1735, 0.006, 0.1685, 0.369, 0.5535, 0.772]
+CONFIG = read_config_file(PROJECT_ROOT / "config.yaml")
+GAMBLE_SIMULATION_CONFIG = CONFIG["gamble_simulation"]
+FRACTAL_VALUES = GAMBLE_SIMULATION_CONFIG["fractals_add"]
+FRACTAL_VALUES_MULTI = GAMBLE_SIMULATION_CONFIG["fractals_mul"]
 
 def create_cues():
     # This script creates cues and saves the cue registry to a yaml file. It can be run once and then deleted.
@@ -156,7 +159,14 @@ def create_ffts():
         name="Positive fractal signs then avoid the worst then p- additive",
         description="FFT with positive fractal signs then the avoid the worst first. Additive dynamic.",
         cues=[ Cue.cue_registry["fs"], Cue.cue_registry["aw_1_a"]])
-     
+
+def create_cues_ffts():
+    create_cues()
+    create_ffts()
+    Cue.save_registry("cue_registry.yaml")
+    FFT.save_registry("fft_registry.yaml")
+    print("Cues and FFTs created and registries saved.")
+
 if __name__ == "__main__":
     create_cues()
     create_ffts()
