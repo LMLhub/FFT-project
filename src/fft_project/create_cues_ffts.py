@@ -5,7 +5,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from fft_project.cue_class import Cue
-from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility, signs
+from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility, signs, prefere_best_n_ranks
 from fft_project.config import read_config_file
 import pandas as pd
 
@@ -108,10 +108,32 @@ def create_cues():
                          "gamma_right_up", "gamma_right_down"],
     )
 
+    Cue(
+        id          = "pb_1_a",
+        name        = "Prefere best 1 of all - additive",
+        description = "Give preference to the gamble that has the best of all fractals",
+        feature     = prefere_best_n_ranks,
+        type        = "boolean",
+        params      = {"n": 1, "fractal_values": FRACTAL_VALUES},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down"],
+    )
+
+    Cue(
+        id          = "pb_1_m",
+        name        = "Prefere best 1 of all - multiplicative",
+        description = "Give preference to the gamble that has the best of all fractals",
+        feature     = prefere_best_n_ranks,
+        type        = "boolean",
+        params      = {"n": 1, "fractal_values": FRACTAL_VALUES_MULTI},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down"],
+    )
+
 def create_ffts():
     # This script creates FFTs and saves the FFT registry to a yaml file. It can be run once and then deleted.
     FFT(id="fft_aw_1_a",
-        name="Avoid the worst or random - additive",
+        name="Avoid the worst - additive",
         description="An example FFT avoid the worst.",
         cues=[Cue.cue_registry["aw_1_a"]])
 
@@ -136,18 +158,18 @@ def create_ffts():
         cues=[Cue.cue_registry["eu_1_5_m"]])
     
     FFT(id="fft_aw_2_a",
-         name="Avoid the worst - additive",
+         name="Avoid the two worst - additive",
          description="An example FFT with the avoid the worst cue.",
          cues=[Cue.cue_registry["aw_2_a"]])
     
     FFT(id="fft_aw_2_m",
-        name="Avoid the worst - multiplicative",
+        name="Avoid the two worst - multiplicative",
         description="An example FFT with the avoid the worst cue.",
         cues=[Cue.cue_registry["aw_2_m"]])  
     
     FFT(id="fft_fs",
         name="Positive fractal signs",
-        description="An example FFT with the positive fractal signs cue. Works for both dynamics.",
+        description="FFT with the positive fractal signs cue. Works for both dynamics.",
         cues=[Cue.cue_registry["fs"]])
     
     FFT(id="fft_aw_1_fs_a",
@@ -156,10 +178,46 @@ def create_ffts():
         cues=[Cue.cue_registry["aw_1_a"], Cue.cue_registry["fs"]])
 
     FFT(id="fft_fs_aw_1_a",
-        name="Positive fractal signs then avoid the worst then p- additive",
+        name="Positive fractal signs then avoid the worst - additive",
         description="FFT with positive fractal signs then the avoid the worst first. Additive dynamic.",
         cues=[ Cue.cue_registry["fs"], Cue.cue_registry["aw_1_a"]])
+    
+    FFT(id="fft_pb_1_a",
+        name="Prefere the best - additive",
+        description="FFT that preferes the best if present. Additive dynamic.",
+        cues=[ Cue.cue_registry["pb_1_a"]])
+   
+    FFT(id="fft_aw_1_pb_1_a",
+        name="Avoid the worst then prefere the best - additive",
+        description="FFT with avoid the worst then prefere the best. Additive dynamic.",
+        cues=[ Cue.cue_registry["aw_1_a"], Cue.cue_registry["pb_1_a"]])
+    
+    FFT(id="fft_pb_1_aw_1_a",
+        name="Avoid the worst then prefere the best - additive",
+        description="FFT with avoid the worst then prefere the best. Additive dynamic.",
+        cues=[ Cue.cue_registry["pb_1_a"], Cue.cue_registry["aw_1_a"]])
 
+    FFT(id="fft_pb_1_m",
+        name="Prefere the best - multiplicative",
+        description="FFT that preferes the best if present. Additive dynamic.",
+        cues=[ Cue.cue_registry["pb_1_m"]])
+   
+    FFT(id="fft_aw_1_pb_1_m",
+        name="Avoid the worst then prefere the best - multip.",
+        description="FFT with avoid the worst then prefere the best. Additive dynamic.",
+        cues=[ Cue.cue_registry["aw_1_m"], Cue.cue_registry["pb_1_m"]])
+    
+    FFT(id="fft_pb_1_aw_1_m",
+        name="Avoid the worst then prefere the best - multip.",
+        description="FFT with avoid the worst then prefere the best. Additive dynamic.",
+        cues=[ Cue.cue_registry["pb_1_m"], Cue.cue_registry["aw_1_m"]])
+
+    FFT(id="fft_fs_aw_1_m",
+        name="Positive fractal signs then avoid the worst - multip.",
+        description="FFT with positive fractal signs then the avoid the worst first. Additive dynamic.",
+        cues=[ Cue.cue_registry["fs"], Cue.cue_registry["aw_1_m"]])
+    
+    
 def create_cues_ffts():
     create_cues()
     create_ffts()
