@@ -9,7 +9,8 @@ factors:
 gamble_simulation:
   n: 252 #Can be any number, but if mirror_gambles is True and random_draw is off, n=252 will give the full set of valid gambles.
   #fractals: [-407.0, -305.5, -241.5, -49.0, 50.0, 108.5, 210.5, 309.5, 440.5]
-  fractals: [-0.850, -0.5395, -0.433, -0.1735, 0.006, 0.1685, 0.369, 0.5535, 0.772]
+  fractals_mul: [-0.8500000000000001, -0.5395000000000001, -0.4330000000000001, -0.1735, 0.006, 0.1685, 0.369, 0.5535, 0.772]
+  fractals_add: [-407.0, -305.5, -241.0, -144.5, -49.0, 108.5, 210.0, 309.5, 440.0]
   # OBS: not gamma values but multiplicative factors: [0.427, 0.583, 0.649, 0.841, 1.006, 1.184, 1.446, 1.739, 2.164]
   exclude_nobrainer: true #determines whether to exclude gambles where one option is strictly better than the other on all dimensions (i.e., "nobrainer" gambles)
   mirror_gambles: true #determines whether to include both (A, B) and (B, A) for each pair of gambles. If true, n should be set to the total number of valid gambles to get the full set of gambles.
