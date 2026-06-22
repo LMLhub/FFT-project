@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 from fft_project.cue_features import expected_isoelastic_utility
+import random
 import yaml
 import sys
 from pathlib import Path
@@ -32,6 +33,10 @@ def eta_choice(
 
     If the eta cue does not make a decision, choose randomly like FFT.decide().
     """
+    #If wealth is less than 0 and dynamics is additive, reset wealth to 1000:
+    if wealth + np.min([x_left_up,x_left_down,x_right_up,x_right_down]) <= 0 and dynamic == "additive":
+        wealth = 1000
+
     left_utility = expected_isoelastic_utility(
         x_left_up,
         x_left_down,
@@ -53,17 +58,19 @@ def eta_choice(
 
     utility_difference = left_utility - right_utility
     cue_value = abs(utility_difference)
-
+    
     if cue_value > 0 and utility_difference > 0:
         return "left"
     if cue_value > 0:
         return "right"
-    #Retrun random if no choice could be made
-
-    if rng is None:
-        rng = np.random
-
-    return rng.choice(["left", "right"])
+    
+    elif abs(cue_value) < 10**(-20) :
+        print(f"No difference in utility for eta {eta} could not be calculated for {x_left_up, x_left_down, x_right_up, x_right_down, wealth}")
+        return random.choice(["left", "right"])
+    #Retrun error if no choice could be made
+    
+    logger.error("Utility couldn't be calculated")
+    raise ValueError("Utility couldn't be calculated")
 
 
 def match_eta(
@@ -280,10 +287,12 @@ def plot_etas_compare(
         
         if "experiment" in fft_name:
             plot_name = "Experimental data"
+            style = "--"
         else:
             plot_name = fft_registry[fft_name]["name"]
+            style = "-"
             
-        ax.plot(etas_result, fft_accuracy, label=plot_name)
+        ax.plot(etas_result, fft_accuracy, label=plot_name, linestyle = style)
 
     ax.legend(loc="upper center",
     bbox_to_anchor=(0.5, -0.15))
