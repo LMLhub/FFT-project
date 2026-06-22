@@ -28,7 +28,7 @@ def initialise():
 def main():
     
     # Simulate some gamble data
-    gamble_data = simulate_gamble_data(10, FRACTAL_VALUES, random_seed = 42)
+    gamble_data = simulate_gamble_data(100, FRACTAL_VALUES, random_seed = 42)
 
     # add a wealth column for testing purposes
     import numpy as np
@@ -41,7 +41,9 @@ def main():
                             description="An example experiment using the simulated gamble data and the example FFT.",
                             gamble_data=gamble_data,
                             initial_wealth=1000,
-                            ffts=[FFT.FFT_registry["fft_eu_1_5_a"],
+                            ffts=[FFT.FFT_registry["fft_aw_1_pb_1_a"],
+                                  FFT.FFT_registry["fft_pb_1_aw_1_a"],
+                                  FFT.FFT_registry["fft_pb_1_a"],
                                   FFT.FFT_registry["fft_gr"],
                                   FFT.FFT_registry["fft_aw_1_a"],
                                   FFT.FFT_registry["fft_aw_2_a"],
@@ -59,6 +61,9 @@ def main():
     print("Accuracy aw_2 vs gr:",experiment.accuracy("fft_aw_2_a", "fft_gr"))
     print("Accuracy aw_1_fs vs gr:",experiment.accuracy("fft_aw_1_fs_a", "fft_gr"))
     print("Accuracy fs_aw_1 vs gr:",experiment.accuracy("fft_fs_aw_1_a", "fft_gr"))
+    print("Accuracy fft_pb_1_a vs gr:",experiment.accuracy("fft_aw_1_pf_1_a", "fft_gr"))
+    print("Accuracy fft_aw_1_pb_1_a vs gr:",experiment.accuracy("fft_aw_1_pb_1_a", "fft_gr"))
+    print("Accuracy fft_pb_1_aw_1_a vs gr:",experiment.accuracy("fft_pf_1_aw_1_a", "fft_gr"))
 
 def main_2():
     gamble_data, experimental_results = prepare_experimental_data(PROJECT_ROOT / "data/all_active_phase_data.csv")
@@ -72,7 +77,7 @@ def main_2():
     #print("\nExperimental Results:")
     #print(experimental_results_additive.head())
 
-    fft_names = ["fft_gr", "fft_aw_1_a", "fft_aw_2_a", "fft_fs", "fft_aw_1_fs_a" ]
+    fft_names = ["fft_gr", "fft_aw_1_a", "fft_aw_2_a", "fft_pb_1_a","fft_pb_1_aw_1_a", "fft_fs", "fft_fs_aw_1_a" ]
     experiment_a = Experiment(id="exp2",
                             name="Example Experiment",
                             dynamic="additive",
@@ -88,11 +93,11 @@ def main_2():
     
     
     import numpy as np
-    from fft_project.analysis_compare import etas_compare, plot_etas_compare
+    from fft_project.analysis_compare import plot_etas_compare
     
     fig, ax = plt.subplots(1,2, figsize=(10,4))
     
-    etas = np.arange(-1,5,0.5)
+    etas = np.linspace(-1,5,31)
     
     plot_etas_compare(
         gamble_data_additive,
@@ -106,7 +111,7 @@ def main_2():
     )
     print('Done with additive - starting multiplicative')
     #Do the same for multiplicative:
-    fft_names = ["fft_gr", "fft_aw_1_m", "fft_aw_2_m", "fft_fs" ]
+    fft_names = ["fft_gr", "fft_aw_1_m", "fft_aw_2_m", "fft_pb_1_m","fft_pb_1_aw_1_m", "fft_fs", "fft_fs_aw_1_m" ]
     experiment_m = Experiment(id="exp2_m",
                             name="Example Experiment",
                             dynamic="multiplicative",
