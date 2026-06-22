@@ -1,6 +1,12 @@
 import logging
 import numpy as np
 from fft_project.cue_features import expected_isoelastic_utility
+import yaml
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +32,6 @@ def eta_choice(
 
     If the eta cue does not make a decision, choose randomly like FFT.decide().
     """
-
-    if rng is None:
-        rng = np.random
-
     left_utility = expected_isoelastic_utility(
         x_left_up,
         x_left_down,
@@ -56,6 +58,11 @@ def eta_choice(
         return "left"
     if cue_value > 0:
         return "right"
+    #Retrun random if no choice could be made
+
+    if rng is None:
+        rng = np.random
+
     return rng.choice(["left", "right"])
 
 
@@ -130,6 +137,7 @@ def match_eta_data(gamble_data, choices, wealth, eta, dynamic, rng=None):
     choices and wealth should have the same order as gamble_data.
     """
     _validate_gamble_data(gamble_data)
+    
     choices = list(choices)
     wealth = list(wealth)
 
@@ -151,6 +159,7 @@ def match_eta_data(gamble_data, choices, wealth, eta, dynamic, rng=None):
         choices,
         wealth,
     ):
+        # Calculate match for each row and append it to matches
         matches.append(
             match_eta(
                 eta,
@@ -174,8 +183,10 @@ def match_etas_data(gamble_data, choices, wealth, etas, dynamic, random_seed=Non
     Calculate eta accuracies for a list of eta values.
     Returns two lists: eta values and their accuracies.
     """
+    #Initialise the list of accuracies for each eta
     accuracies = []
 
+    #For each value of eta, find the matches and calculate the accuracy
     for eta in etas:
         if random_seed is None:
             rng = np.random
@@ -190,53 +201,95 @@ def match_etas_data(gamble_data, choices, wealth, etas, dynamic, random_seed=Non
     return list(etas), accuracies
 
 
-def eta_compare(gamble_data, results, eta, fft_id, runs=None, dynamic="additive", random_seed=None):
+def etas_compare(gamble_data, results, etas, fft_id, dynamic, runs=None, random_seed=None):
     """
-    Compare stored FFT decisions with deterministic EUT decisions for one eta.
-    This mirrors Experiment.eta_compare without creating Cue, FFT, or Experiment
-    objects. The wealth used for the eta decision is the stored wealth_pre for
+    Compare stored FFT decisions with deterministic EUT decisions for a list of etas.
+    The wealth used for the eta decision is the stored wealth_pre for
     the selected fft_id and run.
     """
     _validate_gamble_data(gamble_data)
 
+    # Get the latest run if no run is given
     if runs is None:
         runs = _latest_run(results, fft_id)
 
-    if random_seed is None:
-        rng = np.random
-    else:
-        rng = np.random.RandomState(random_seed)
-
+    # Get the reference choices and wealth data from the experiment
     choices = _result_series(results, fft_id, runs, "selected_side")
     wealth = _result_series(results, fft_id, runs, "wealth_pre")
 
-    matches = match_eta_data(gamble_data, choices, wealth, eta, dynamic, rng)
-    if len(matches) == 0:
-        raise ValueError("Cannot calculate eta comparison for empty data.")
+    # Calculate the match accuracy for each eta.
+    etas, accuracies = match_etas_data(gamble_data, choices, wealth, etas, dynamic, random_seed)
+    
+    return etas, accuracies
 
-    return sum(matches) / len(matches)
 
-
-def eta_match(
-    gamble_data,
-    results,
-    fft_id,
-    runs=None,
-    eta_values=None,
-    dynamic="additive",
-    random_seed=None,
-):
+def eta_match(gamble_data, results, fft_id, runs=None, eta_values=None, dynamic="additive", random_seed=None):
     """
-    Compare stored FFT decisions with EUT decisions across eta values.
-
-    Returns two lists: eta values and accuracies.
+    Backwards-compatible wrapper for comparing one FFT to a list of eta values.
     """
     if eta_values is None:
         eta_values = np.arange(-2, 5, 0.25)
 
-    accuracies = []
-    for eta in eta_values:
-        accuracy = eta_compare(gamble_data, results, eta, fft_id, runs, dynamic, random_seed)
-        accuracies.append(accuracy)
+    return etas_compare(
+        gamble_data,
+        results,
+        eta_values,
+        fft_id,
+        dynamic,
+        runs=runs,
+        random_seed=random_seed,
+    )
 
-    return list(eta_values), accuracies
+
+def plot_etas_compare(
+    gamble_data,
+    results,
+    fft_names,
+    etas,
+    dynamic,
+    ax=None,
+    runs=1,
+    random_seed=None,
+    title=None,
+):
+    """
+    Plot eta-match accuracies for a list of FFT ids.
+
+    This is the reusable version of each subplot loop in eta-visual-test.py.
+    Pass an existing matplotlib axis to draw into a subplot, or omit ax to create
+    a standalone figure and axis.
+    """
+    if ax is None:
+        import matplotlib.pyplot as plt
+
+        _, ax = plt.subplots()
+
+    with open("fft_registry.yaml", "r") as f:
+        fft_registry = yaml.safe_load(f)
+    
+    for fft_name in fft_names:
+        etas_result, fft_accuracy = etas_compare(
+            gamble_data,
+            results,
+            etas,
+            fft_name,
+            dynamic,
+            runs=runs,
+            random_seed=random_seed,
+        )
+        
+        if "experiment" in fft_name:
+            plot_name = "Experimental data"
+        else:
+            plot_name = fft_registry[fft_name]["name"]
+            
+        ax.plot(etas_result, fft_accuracy, label=plot_name)
+
+    ax.legend(loc="upper center",
+    bbox_to_anchor=(0.5, -0.15))
+    ax.set_xlabel("Eta")
+    ax.set_ylabel("Accuracy")
+
+    ax.set_title(title or f"{dynamic.capitalize()} dynamics")
+
+    return ax
