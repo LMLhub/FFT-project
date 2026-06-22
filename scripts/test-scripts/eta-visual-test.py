@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
@@ -91,7 +92,12 @@ def main_2():
     eta = 1
     print(f"Eta compare {eta}: ", experiment.eta_compare(eta, "fft_fs"))
 
-    print(f"Accuracy of eta values:", experiment.eta_match("fft_fs"))
+    name = "fft_fs"
+    eta,fft_accuracy = experiment.eta_match(name)
+    plt.plot(eta,fft_accuracy, label=name)
+    plt.legend()
+    plt.savefig("eta_accuracy.png", dpi=300, bbox_inches="tight")
+
 
 if __name__ == "__main__":
     initialise()

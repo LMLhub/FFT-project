@@ -438,7 +438,7 @@ class Experiment:
 
         #caluclate the accuracy of the new FFT's decisions compared to the decisions of the given fft_id
         # Pull the decision series for this run.
-        fft_decisions       = exp_copy.results[(fft_id,       runs, "selected_side")]
+        fft_decisions       = exp_copy.results[(fft_id, runs, "selected_side")]
         reference_decisions = eta_results[(fft_eu_temp.id, runs+1, "selected_side")]
         
         # Count the number of correct decisions (where the FFT's decision matches the reference)
