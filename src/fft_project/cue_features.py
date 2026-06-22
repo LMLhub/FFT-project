@@ -19,8 +19,12 @@ def expected_isoelastic_utility(g1_up, g1_down, g2_up, g2_down, wealth, dynamic,
         x12 = g1_down + wealth
     else:
         raise ValueError("Invalid dynamic. Must be 'multiplicative' or 'additive'.")
-    if eta == 1:
+    tol = 10**(-15)
+    if abs(eta - 1) < tol:
         return (np.log(x11) + np.log(x12))/2
+    if abs(eta) <= tol:
+        return (x11 + x12) / 2
+
     elif eta != 1:
         return (np.power(x11, 1-eta) + np.power(x12, 1-eta))/(2*(1-eta))
 
@@ -71,3 +75,20 @@ def signs(g1_up, g1_down, g2_up, g2_down):
        count += 1
     return count
 
+def prefere_best_n_ranks(g1_up, g1_down, g2_up, g2_down, n, fractal_values):
+    #Checks if gamble 1 contains any of the n best fractal values.
+    #The n best fractal values are the n biggest values in fractal_values.
+    #Returns True if neither g1_up nor g1_down is among the n best fractal values.
+    #Returns False if g1_up or g1_down is among the n best fractal values.
+    #g2_up and g2_down are not used here, but the Cue class always passes both gambles.
+    if n >= len(fractal_values):
+        logger.error(f"n ({n}) must be smaller than the number of fractals ({len(fractal_values)}).")
+        raise ValueError(f"n ({n}) must be smaller than the number of fractals ({len(fractal_values)}).")
+    if g1_up not in fractal_values or g1_down not in fractal_values:
+        logger.error(f"Gamble values {g1_up}, {g1_down} are not in fractal_values.")
+        raise ValueError(f"Gamble values {g1_up}, {g1_down} are not in fractal_values.")
+    best_values = sorted(fractal_values)[-n:]
+    if g1_up in best_values or g1_down in best_values:
+        return True
+    else:
+        return False
