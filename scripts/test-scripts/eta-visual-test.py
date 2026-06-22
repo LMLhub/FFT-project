@@ -1,27 +1,29 @@
 import sys
 from pathlib import Path
-import matplotlib.pyplot as plt
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+import pandas as pd
+import matplotlib.pyplot as plt
 
 from fft_project.cue_class import Cue
 from fft_project.decision_class import FFT
 from fft_project.experiment_class import Experiment
 from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility
-import pandas as pd
 
 from fft_project.simulation_gamble_data import simulate_gamble_data
-from fft_project.create_cues_ffts import create_cues, create_ffts
+from fft_project.create_cues_ffts import create_cues_ffts
 from fft_project.prepare_experimental_data import prepare_experimental_data
 
-#Fractal values for the additive dynamic from the experiment.
-FRACTAL_VALUES = [-407.0, -305.5, -241.5, -49.0, 50.0, 108.5, 210.5, 309.5, 440.5]
-FRACTAL_VALUES_MULTI = [-0.850, -0.5395, -0.433, -0.1735, 0.006, 0.1685, 0.369, 0.5535, 0.772]
+from fft_project.config import read_config_file
+CONFIG = read_config_file(PROJECT_ROOT / "config.yaml")
+GAMBLE_SIMULATION_CONFIG = CONFIG["gamble_simulation"]
+FRACTAL_VALUES = GAMBLE_SIMULATION_CONFIG["fractals_add"]
+FRACTAL_VALUES_MULTI = GAMBLE_SIMULATION_CONFIG["fractals_mul"]
 
 def initialise():
-    create_cues()
-    create_ffts()
+    create_cues_ffts()
 
 def main():
     
@@ -63,41 +65,73 @@ def main_2():
     gamble_data_additive, gamble_data_multiplicative = gamble_data
     experimental_results_additive, experimental_results_multiplicative = experimental_results
     experimental_results_additive.reset_index()
+    
+    #print(experimental_results_additive.head())
+    #print("Gamble Data:")
+    #print(gamble_data_additive.head())
+    #print("\nExperimental Results:")
+    #print(experimental_results_additive.head())
 
-    print("Gamble Data:")
-    print(gamble_data_additive.head())
-    print("\nExperimental Results:")
-    print(experimental_results_additive.head())
-
-    experiment = Experiment(id="exp2",
+    fft_names = ["fft_gr", "fft_aw_1_a", "fft_aw_2_a", "fft_fs", "fft_aw_1_fs_a" ]
+    experiment_a = Experiment(id="exp2",
                             name="Example Experiment",
                             dynamic="additive",
                             description="An example experiment using the simulated gamble data and the example FFT.",
                             gamble_data=gamble_data_additive,
-                            ffts=[FFT.FFT_registry["fft_gr"],
-                                  FFT.FFT_registry["fft_fs"],]
+                            ffts=[FFT.FFT_registry[name] for name in fft_names]
     )
-    results = experiment.run_experiment(wealth_update="data", random_seed=42)
-    results = pd.concat([results, experimental_results_additive], axis=1)
-    experiment.results = results
 
-    #print("results:")
-    #print(results)
-    #print("selected side in experiment:", results[("experiment_a",1,"selected_side")])
-
-    #print("Accuracy fs vs experiment:",experiment.accuracy("fft_fs", "experiment_a"))
-    #print("Accuracy experiment vs gr:",experiment.accuracy("experiment_a", "fft_gr"))
-    #print("Accuracy gr vs experiment:",experiment.accuracy("fft_gr", "experiment_a"))
+    results_a = experiment_a.run_experiment(wealth_update="data", random_seed=42)
     
-    eta = 1
-    print(f"Eta compare {eta}: ", experiment.eta_compare(eta, "fft_fs"))
+    fft_names.append("experiment_a")
+    results_a = pd.concat([results_a, experimental_results_additive], axis=1)
+    
+    
+    import numpy as np
+    from fft_project.analysis_compare import etas_compare, plot_etas_compare
+    
+    fig, ax = plt.subplots(1,2, figsize=(10,4))
+    
+    etas = np.arange(-1,5,0.5)
+    
+    plot_etas_compare(
+        gamble_data_additive,
+        results_a,
+        fft_names,
+        etas,
+        "additive",
+        ax=ax[0],
+        runs=1,
+        random_seed=42,
+    )
+    print('Done with additive - starting multiplicative')
+    #Do the same for multiplicative:
+    fft_names = ["fft_gr", "fft_aw_1_m", "fft_aw_2_m", "fft_fs" ]
+    experiment_m = Experiment(id="exp2_m",
+                            name="Example Experiment",
+                            dynamic="multiplicative",
+                            description="An example experiment using the simulated gamble data and the example FFT.",
+                            gamble_data=gamble_data_multiplicative,
+                            ffts=[FFT.FFT_registry[name] for name in fft_names]
+    )
 
-    name = "fft_fs"
-    eta,fft_accuracy = experiment.eta_match(name)
-    plt.plot(eta,fft_accuracy, label=name)
-    plt.legend()
-    plt.savefig("eta_accuracy.png", dpi=300, bbox_inches="tight")
+    results_m = experiment_m.run_experiment(wealth_update="data", random_seed=42)
+    
+    fft_names.append("experiment_m")
+    results_a = pd.concat([results_m, experimental_results_multiplicative], axis=1)
 
+    plot_etas_compare(
+        gamble_data_multiplicative,
+        results_a,
+        fft_names,
+        etas,
+        "multiplicative",
+        ax=ax[1],
+        runs=1,
+        random_seed=42,
+    )
+    
+    fig.savefig("eta_accuracy.png", dpi=300, bbox_inches="tight")
 
 if __name__ == "__main__":
     initialise()
