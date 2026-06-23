@@ -75,7 +75,7 @@ def signs(g1_up, g1_down, g2_up, g2_down):
        count += 1
     return count
 
-def prefere_best_n_ranks(g1_up, g1_down, g2_up, g2_down, n, fractal_values):
+def prefer_best_n_ranks(g1_up, g1_down, g2_up, g2_down, n, fractal_values):
     #Checks if gamble 1 contains any of the n best fractal values.
     #The n best fractal values are the n biggest values in fractal_values.
     #Returns True if neither g1_up nor g1_down is among the n best fractal values.

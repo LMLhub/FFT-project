@@ -65,7 +65,7 @@ def eta_choice(
         return "right"
     
     elif abs(cue_value) < 10**(-20) :
-        print(f"No difference in utility for eta {eta} could not be calculated for {x_left_up, x_left_down, x_right_up, x_right_down, wealth}")
+        print(f"Random choice: No difference in utility for eta {eta} for {x_left_up, x_left_down, x_right_up, x_right_down, wealth}")
         return random.choice(["left", "right"])
     #Retrun error if no choice could be made
     
@@ -294,11 +294,122 @@ def plot_etas_compare(
             
         ax.plot(etas_result, fft_accuracy, label=plot_name, linestyle = style)
 
-    ax.legend(loc="upper center",
-    bbox_to_anchor=(0.5, -0.15))
+    ax.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.15),
+        fontsize=8,
+    )
     ax.set_xlabel("Eta")
     ax.set_ylabel("Accuracy")
 
     ax.set_title(title or f"{dynamic.capitalize()} dynamics")
+
+    return ax
+
+def average_chosen_expected_gamma(results, fft_id, runs=None):
+    """
+    Return the average chosen_expected_gamma for a given FFT and run.
+
+    If runs is None, use the latest run available for the FFT.
+    """
+    if runs is None:
+        runs = _latest_run(results, fft_id)
+
+    chosen_expected_gamma = _result_series(
+        results,
+        fft_id,
+        runs,
+        "chosen_expected_gamma",
+    )
+
+    return chosen_expected_gamma.mean()
+
+
+def accuracy_against_reference(results, fft_id, reference_id="fft_gr", runs=None):
+    """
+    Return the decision accuracy of one FFT against a reference FFT.
+
+    If runs is None, use the latest run available for fft_id.
+    """
+    if runs is None:
+        runs = _latest_run(results, fft_id)
+
+    fft_decisions = _result_series(results, fft_id, runs, "selected_side")
+    reference_decisions = _result_series(results, reference_id, runs, "selected_side")
+
+    if len(fft_decisions) != len(reference_decisions):
+        raise ValueError("FFT decisions and reference decisions must have the same length.")
+
+    return (fft_decisions == reference_decisions).mean()
+
+
+def plot_accuracy_gamma_scatter(
+    results,
+    fft_ids=None,
+    reference_id="fft_gr",
+    runs=None,
+    ax=None,
+    title=None,
+):
+    """
+    Scatter plot FFT accuracy against a reference and average chosen expected gamma.
+
+    x-axis: accuracy against reference_id.
+    y-axis: average chosen_expected_gamma.
+    """
+    if ax is None:
+        import matplotlib.pyplot as plt
+
+        _, ax = plt.subplots()
+
+    if fft_ids is None:
+        fft_ids = list(dict.fromkeys(results.columns.get_level_values("fft_id")))
+
+    with open("fft_registry.yaml", "r") as f:
+        fft_registry = yaml.safe_load(f)
+
+    if "experiment" in reference_id:
+        reference_name = "Experimental data"
+    else:
+        reference_name = fft_registry.get(reference_id, {}).get("name", reference_id)
+
+    for fft_id in fft_ids:
+        run = _latest_run(results, fft_id) if runs is None else runs
+        accuracy = accuracy_against_reference(results, fft_id, reference_id, run)
+        avg_gamma = average_chosen_expected_gamma(results, fft_id, run)
+
+        if "experiment" in fft_id:
+            plot_name = "Experimental data"
+        else:
+            plot_name = fft_registry.get(fft_id, {}).get("name", fft_id)
+
+        ax.scatter(accuracy, avg_gamma)
+
+        if accuracy > 0.8:
+            label_offset = (-6, 0)
+            horizontal_alignment = "right"
+            vertical_alignment = "center"
+        elif plot_name == "Positive fractal signs then avoid the worst":
+            plot_name = "Positive fractal signs\nthen avoid the worst"
+            label_offset = (6, 0)
+            horizontal_alignment = "left"
+            vertical_alignment = "bottom"
+        else:
+            label_offset = (6, 0)
+            horizontal_alignment = "left"
+            vertical_alignment = "center"
+
+        ax.annotate(
+            plot_name,
+            (accuracy, avg_gamma),
+            xytext=label_offset,
+            textcoords="offset points",
+            va=vertical_alignment,
+            ha=horizontal_alignment,
+        )
+
+    ax.set_xlabel(f"Accuracy against {reference_name}")
+    ax.set_ylabel("Time-average growth rate")
+    ax.set_title(title or "Accuracy vs time-average growth rate")
 
     return ax
