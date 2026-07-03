@@ -1,6 +1,5 @@
-site_name: Your Project
-
-site_url: https://<user>.github.io/<repo>/  
+site_name: FFT Project
+site_url: https://<user>.github.io/<repo>/
 
 theme:
   name: material
@@ -11,8 +10,13 @@ nav:
   - Home: index.md
   - Documentation:
       - Overview: docs/index.md
+      - Class Documentation: docs/class_documentation.md
+      - Eta Estimation: docs/eta-estimation.md
+      - Naming Conventions: docs/naming_conventions.md
+      - Reference Paper (PDF): docs/Ergodicity_transformations_predict_human_decision_making_under_risk-3.pdf
   - Notes:
       - Overview: notes/index.md
+      - Greedy FFT Construction Notes: notes/greedy.md
 
 markdown_extensions:
   - admonition
@@ -24,6 +28,4 @@ markdown_extensions:
   - pymdownx.highlight
 
 extra_javascript:
-  - javascripts/mathjax.js
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
-
