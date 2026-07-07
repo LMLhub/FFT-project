@@ -130,6 +130,17 @@ def create_cues():
                          "gamma_right_up", "gamma_right_down"],
     )
 
+    Cue(
+        id          = "min_01",
+        name        = "Minimum gains difference 10 percent",
+        description = "Give preference to the gamble with the highest minimum gains if the minimum gains differs by 10 percent of the maximum gain",
+        feature     = minimum_gains,
+        type        = "boolean",
+        params      = {"tol": 0.1},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down"],
+    )
+
 def create_ffts():
     # This script creates FFTs and saves the FFT registry to a yaml file. It can be run once and then deleted.
     FFT(id="fft_aw_1_a",
