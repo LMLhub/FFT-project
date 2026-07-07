@@ -92,3 +92,27 @@ def prefer_best_n_ranks(g1_up, g1_down, g2_up, g2_down, n, fractal_values):
         return True
     else:
         return False
+    
+def minimum_gains(g1_up, g1_down, g2_up, g2_down, tol):
+    # Checks if the difference between the minimum gain of gamble 1 and minimum gain of gamble 2
+    # is greater than the tolerance multiplied by the maximimum gain of gamble 2.
+    # Returns true if the minimum gain is above the the threshold, indicating preference of the less risky choice of g1.
+
+    g1_min = np.min([g1_up, g1_down])
+    g2_min = np.min([g2_up, g2_down])
+    
+    print("minimum values: ", g1_min," ", g2_min)
+    
+    g1_max = np.max([g1_up, g1_down])
+    g2_max = np.max([g2_up, g2_down])
+    
+    print("maximum value: ", g1_max, " ", g2_max)
+    
+    min_difference = g1_min - g2_min
+    if np.abs(min_difference) > tol * np.max([np.abs(g1_max), np.abs(g2_max)]):
+        if min_difference > 0:
+            return True
+        else:
+            return False
+    else:
+        return False
