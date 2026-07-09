@@ -19,12 +19,15 @@ from fft_project.prepare_experimental_data import prepare_experimental_data
 from fft_project.analysis_compare import plot_etas_compare, plot_accuracy_gamma_scatter
 
 
-
 from fft_project.config import read_config_file
 CONFIG = read_config_file(PROJECT_ROOT / "config.yaml")
 GAMBLE_SIMULATION_CONFIG = CONFIG["gamble_simulation"]
 FRACTAL_VALUES = GAMBLE_SIMULATION_CONFIG["fractals_add"]
 FRACTAL_VALUES_MULTI = GAMBLE_SIMULATION_CONFIG["fractals_mul"]
+
+FFT_NAMES_A = ["fft_gr", "fft_aw_1_a", "fft_aw_2_a", "fft_pb_1_a","fft_pb_1_aw_1_a", "fft_fs", "fft_fs_aw_1_a", "pri_a", "pri_nl_a" ]
+#FFT_NAMES_M = ["fft_gr", "fft_aw_1_m", "fft_aw_2_m", "fft_pb_1_m","fft_pb_1_aw_1_m", "fft_fs", "fft_fs_aw_1_m", "pri_m", "pri_nl_m" ]
+FFT_NAMES_M = ["fft_gr", "fft_fs", "fft_fs_aw_1_m", "pri_m" ]
 
 def initialise():
     create_cues_ffts()
@@ -45,15 +48,7 @@ def test():
                             description="An example experiment using the simulated gamble data and the example FFT.",
                             gamble_data=gamble_data,
                             initial_wealth=1000,
-                            ffts=[FFT.FFT_registry["fft_aw_1_pb_1_a"],
-                                  FFT.FFT_registry["fft_pb_1_aw_1_a"],
-                                  FFT.FFT_registry["fft_pb_1_a"],
-                                  FFT.FFT_registry["fft_gr"],
-                                  FFT.FFT_registry["fft_aw_1_a"],
-                                  FFT.FFT_registry["fft_aw_2_a"],
-                                  FFT.FFT_registry["fft_fs"],
-                                  FFT.FFT_registry["fft_aw_1_fs_a"],
-                                  FFT.FFT_registry["fft_fs_aw_1_a"]]
+                            ffts=[FFT.FFT_registry[name] for name in FFT_NAMES_A]
     )
 
     # Evaluate the experiment
@@ -68,6 +63,8 @@ def test():
     print("Accuracy fft_pb_1_a vs gr:",experiment.accuracy("fft_aw_1_pf_1_a", "fft_gr"))
     print("Accuracy fft_aw_1_pb_1_a vs gr:",experiment.accuracy("fft_aw_1_pb_1_a", "fft_gr"))
     print("Accuracy fft_pb_1_aw_1_a vs gr:",experiment.accuracy("fft_pf_1_aw_1_a", "fft_gr"))
+    print("Accuracy pri_a vs gr:",experiment.accuracy("pri_a", "fft_gr"))
+    print("Accuracy pri_nl_a vs gr:",experiment.accuracy("pri_nl_a", "fft_gr"))
 
 def plot_gamma_match():
     gamble_data, experimental_results = prepare_experimental_data(PROJECT_ROOT / "data/all_active_phase_data.csv")
@@ -81,7 +78,9 @@ def plot_gamma_match():
     #print("\nExperimental Results:")
     #print(experimental_results_additive.head())
 
-    fft_names = ["fft_gr", "fft_aw_1_a", "fft_aw_2_a", "fft_pb_1_a","fft_pb_1_aw_1_a", "fft_fs", "fft_fs_aw_1_a" ]
+    #fft_names = ["fft_gr", "fft_aw_1_a", "fft_aw_2_a", "fft_pb_1_a","fft_pb_1_aw_1_a", "fft_fs", "fft_fs_aw_1_a", "pri_a" ]
+    fft_names = FFT_NAMES_A.copy()
+
     experiment_a = Experiment(id="exp2_a",
                             name="Example Experiment",
                             dynamic="additive",
@@ -110,8 +109,10 @@ def plot_gamma_match():
         random_seed=42,
     )
     print('Done with additive - starting multiplicative')
+    
     #Do the same for multiplicative:
-    fft_names = ["fft_gr", "fft_aw_1_m", "fft_aw_2_m", "fft_pb_1_m","fft_pb_1_aw_1_m", "fft_fs", "fft_fs_aw_1_m" ]
+    fft_names = FFT_NAMES_M.copy()
+   
     experiment_m = Experiment(id="exp2_m",
                             name="Example Experiment",
                             dynamic="multiplicative",
@@ -123,11 +124,11 @@ def plot_gamma_match():
     results_m = experiment_m.run_experiment(wealth_update="data", random_seed=42)
     
     fft_names.append("experiment_m")
-    results_a = pd.concat([results_m, experimental_results_multiplicative], axis=1)
+    results_m = pd.concat([results_m, experimental_results_multiplicative], axis=1)
 
     plot_etas_compare(
         gamble_data_multiplicative,
-        results_a,
+        results_m,
         fft_names,
         etas,
         "multiplicative",
@@ -146,26 +147,27 @@ def plot_growth_rate_match():
     
     fig, ax = plt.subplots(1,2, figsize=(10,4))    
     
-    fft_names = ["fft_gr", "fft_aw_1_a", "fft_aw_2_a", "fft_pb_1_a","fft_pb_1_aw_1_a", "fft_fs", "fft_fs_aw_1_a" ]
+    #fft_names = ["fft_gr", "fft_aw_1_a", "fft_aw_2_a", "fft_pb_1_a","fft_pb_1_aw_1_a", "fft_fs", "fft_fs_aw_1_a", "pri_a" ]
+    fft_names = FFT_NAMES_A.copy()
+
     experiment_a = Experiment(id="exp3_a",
                             name="Example Experiment",
                             dynamic="additive",
                             description="An example experiment using the simulated gamble data and the example FFT.",
                             gamble_data=gamble_data_additive,
-                            ffts=[FFT.FFT_registry[name] for name in fft_names]
-    )
+                            ffts=[FFT.FFT_registry[name] for name in fft_names])
 
     results_a = experiment_a.run_experiment(wealth_update="data", random_seed=42)
+    
     fft_names.append("experiment_a")
     results_a = pd.concat([results_a, experimental_results_additive], axis=1)
-
-    #fft_names = ["fft_gr","experiment_a", "fft_aw_1_a", "fft_aw_2_a", "fft_pb_1_a","fft_pb_1_aw_1_a", "fft_fs", "fft_fs_aw_1_a" ]
-    
+ 
     plot_accuracy_gamma_scatter(results_a, fft_names,
                                  "fft_gr", runs=1, ax=ax[0],
                                  title = "Additive dynamics")
     
-    fft_names = ["fft_gr", "fft_aw_1_m", "fft_aw_2_m", "fft_pb_1_m","fft_pb_1_aw_1_m", "fft_fs", "fft_fs_aw_1_m" ]
+    fft_names = FFT_NAMES_M.copy()
+    
     experiment_m = Experiment(id="exp3_m",
                             name="Example Experiment",
                             dynamic="multiplicative",
@@ -177,9 +179,9 @@ def plot_growth_rate_match():
     results_m = experiment_m.run_experiment(wealth_update="data", random_seed=42)
     
     fft_names.append("experiment_m")
-    results_a = pd.concat([results_m, experimental_results_multiplicative], axis=1)
+    results_m = pd.concat([results_m, experimental_results_multiplicative], axis=1)
     
-    plot_accuracy_gamma_scatter(results_a, fft_names, "fft_gr",
+    plot_accuracy_gamma_scatter(results_m, fft_names, "fft_gr",
                                 runs=1, ax=ax[1],
                                 title = "Multiplicative dynamics")
     
@@ -194,40 +196,46 @@ def plot_experiment_match():
     
     fig, ax = plt.subplots(1,2, figsize=(10,4))    
     
-    fft_names = ["fft_gr", "fft_aw_1_a", "fft_aw_2_a", "fft_pb_1_a","fft_pb_1_aw_1_a", "fft_fs", "fft_fs_aw_1_a" ]
-    experiment_a = Experiment(id="exp4_a",
-                            name="Example Experiment",
+    fft_names = FFT_NAMES_A.copy()
+    
+    for name in fft_names:
+        print(FFT.FFT_registry[name].id)
+
+    experiment_a = Experiment(id= "exp4_a",
+                            name= "Example Experiment",
                             dynamic="additive",
                             description="An example experiment using the simulated gamble data and the example FFT.",
-                            gamble_data=gamble_data_additive,
-                            ffts=[FFT.FFT_registry[name] for name in fft_names]
-    )
+                            gamble_data = gamble_data_additive,
+                            ffts= [FFT.FFT_registry[name] for name in fft_names])
 
     results_a = experiment_a.run_experiment(wealth_update="data", random_seed=42)
     fft_names.append("experiment_a")
     results_a = pd.concat([results_a, experimental_results_additive], axis=1)
 
-    #fft_names = ["fft_gr","experiment_a", "fft_aw_1_a", "fft_aw_2_a", "fft_pb_1_a","fft_pb_1_aw_1_a", "fft_fs", "fft_fs_aw_1_a" ]
-    
     plot_accuracy_gamma_scatter(results_a, fft_names,
                                  "experiment_a", runs=1, ax=ax[0],
                                  title = "Additive dynamics")
     
-    fft_names = ["fft_gr", "fft_aw_1_m", "fft_aw_2_m", "fft_pb_1_m","fft_pb_1_aw_1_m", "fft_fs", "fft_fs_aw_1_m" ]
+    fft_names = FFT_NAMES_M.copy()
+    for name in fft_names:
+        print(FFT.FFT_registry[name].id)
+
     experiment_m = Experiment(id="exp4_m",
                             name="Example Experiment",
                             dynamic="multiplicative",
                             description="An example experiment using the simulated gamble data and the example FFT.",
-                            gamble_data=gamble_data_multiplicative,
-                            ffts=[FFT.FFT_registry[name] for name in fft_names]
-    )
+                            gamble_data = gamble_data_multiplicative,
+                            ffts=[FFT.FFT_registry[name] for name in fft_names])
 
     results_m = experiment_m.run_experiment(wealth_update="data", random_seed=42)
     
     fft_names.append("experiment_m")
-    results_a = pd.concat([results_m, experimental_results_multiplicative], axis=1)
+    results_m = pd.concat([results_m, experimental_results_multiplicative], axis=1)
     
-    plot_accuracy_gamma_scatter(results_a, fft_names, "experiment_m",
+    #print the priority heuristic results for the multiplicative dynamics:
+    print("Accuracy pri_m vs gr:",experiment_m.accuracy("pri_m", "fft_gr"))
+
+    plot_accuracy_gamma_scatter(results_m, fft_names, "experiment_m",
                                 runs=1, ax=ax[1],
                                 title = "Multiplicative dynamics")
     
@@ -237,6 +245,6 @@ def plot_experiment_match():
 if __name__ == "__main__":
     initialise()
     # test()
-    plot_gamma_match()
+    #plot_gamma_match()
     plot_growth_rate_match()
     plot_experiment_match()

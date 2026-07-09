@@ -5,7 +5,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from fft_project.cue_class import Cue
-from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility, signs, prefer_best_n_ranks
+from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility, signs, prefer_best_n_ranks, priority_step1, priority_step3, priority_step1_no_loss, priority_step3_no_loss
 from fft_project.config import read_config_file
 import pandas as pd
 
@@ -131,12 +131,89 @@ def create_cues():
     )
 
     Cue(
-        id          = "min_01",
-        name        = "Minimum gains difference 10 percent",
+        id          = "pri_1_01_a",
+        name        = "Minimum gains difference 10 percent (additive)",
         description = "Give preference to the gamble with the highest minimum gains if the minimum gains differs by 10 percent of the maximum gain",
-        feature     = minimum_gains,
+        feature     = priority_step1,
         type        = "boolean",
-        params      = {"tol": 0.1},
+        params      = {"tol": 0.1, "dynamic": "additive"},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down"],
+    )
+
+    Cue(
+        id          = "pri_3_a",
+        name        = "Maximum gains (additive)",
+        description = "Give preference to the gamble with the highest maximum gains.",
+        feature     = priority_step3,
+        type        = "boolean",
+        params      = {"dynamic": "additive"},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down"],
+    )
+
+    Cue(
+        id          = "pri_1_01_m",
+        name        = "Minimum gains difference 10 percent (multiplicative)",
+        description = "Give preference to the gamble with the highest minimum gains if the minimum gains differs by 10 percent of the maximum gain",
+        feature     = priority_step1,
+        type        = "boolean",
+        params      = {"tol": 0.1, "dynamic": "multiplicative"},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down"],
+    )
+
+    Cue(
+        id          = "pri_3_m",
+        name        = "Maximum gains (multiplicative)",
+        description = "Give preference to the gamble with the highest maximum gains.",
+        feature     = priority_step3,
+        type        = "boolean",
+        params      = {"dynamic": "multiplicative"},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down"],
+    )
+
+    Cue(
+        id          = "pri_nl_1_01_a",
+        name        = "Variation No Loss of priority heuristic step 1 with 10 percent tolerance(additive)",
+        description = "Give preference to the gamble with the highest minimum gains if the minimum gains differs by 10 percent of the maximum gain. Before evaluating, all outcomes are moved such that they are positive",
+        feature     = priority_step1_no_loss,
+        type        = "boolean",
+        params      = {"tol": 0.1, "dynamic": "additive"},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down"],
+    )
+
+    Cue(
+        id          = "pri_nl_3_a",
+        name        = "Variation No Loss of step 3 of the priority heuristic (additive)",
+        description = "Give preference to the gamble with the highest maximum gains. Before evaluating, all outcomes are moved such that they are positive",
+        feature     = priority_step3_no_loss,
+        type        = "boolean",
+        params      = {"dynamic": "additive"},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down"],
+    )
+
+    Cue(
+        id          = "pri_nl_1_01_m",
+        name        = "Variation No Loss of priority heuristic step 1 with 10 percent tolerance (multiplicative)",
+        description = "Give preference to the gamble with the highest minimum gains if the minimum gains differs by 10 percent of the maximum gain. Before evaluating, all outcomes are moved such that they are positive",
+        feature     = priority_step1_no_loss,
+        type        = "boolean",
+        params      = {"tol": 0.1, "dynamic": "multiplicative"},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down"],
+    )
+
+    Cue(
+        id          = "pri_nl_3_m",
+        name        = "Variation No Loss of step 3 of the priority heuristic (multiplicative)",
+        description = "Give preference to the gamble with the highest maximum gains. Before evaluating, all outcomes are moved such that they are positive",
+        feature     = priority_step3_no_loss,
+        type        = "boolean",
+        params      = {"dynamic": "multiplicative"},
         required_args = ["gamma_left_up", "gamma_left_down",
                          "gamma_right_up", "gamma_right_down"],
     )
@@ -228,6 +305,27 @@ def create_ffts():
         description="FFT with positive fractal signs then the avoid the worst first. Additive dynamic.",
         cues=[ Cue.cue_registry["fs"], Cue.cue_registry["aw_1_m"]])
     
+    FFT(id="pri_a",
+        name="Priority heuristic",
+        description="The priority heuristic as described by Brandstätter, Gigerenzer, and Hertwig (2006). For additive dynamics",
+        cues=[ Cue.cue_registry["pri_1_01_a"], Cue.cue_registry["pri_3_a"]])
+
+    FFT(id="pri_m",
+        name="Priority heuristic",
+        description="The priority heuristic as described by Brandstätter, Gigerenzer, and Hertwig (2006). For multiplicative dynamics",
+        cues=[ Cue.cue_registry["pri_1_01_m"], Cue.cue_registry["pri_3_m"]])
+    
+    FFT(id="pri_nl_a",
+        name="Priority heuristic (no loss)",
+        description="The priority heuristic as described by Brandstätter, Gigerenzer, and Hertwig (2006) without the loss option. For additive dynamics",
+        cues=[ Cue.cue_registry["pri_nl_1_01_a"], Cue.cue_registry["pri_nl_3_a"]])
+
+    FFT(id="pri_nl_m",
+        name="Priority heuristic (no loss)",
+        description="The priority heuristic as described by Brandstätter, Gigerenzer, and Hertwig (2006) without the loss option. For multiplicative dynamics",
+        cues=[ Cue.cue_registry["pri_nl_1_01_m"], Cue.cue_registry["pri_nl_3_m"]])
+
+
     
 def create_cues_ffts(filepath=None):
     create_cues()

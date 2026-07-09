@@ -93,26 +93,145 @@ def prefer_best_n_ranks(g1_up, g1_down, g2_up, g2_down, n, fractal_values):
     else:
         return False
     
-def minimum_gains(g1_up, g1_down, g2_up, g2_down, tol):
-    # Checks if the difference between the minimum gain of gamble 1 and minimum gain of gamble 2
+def priority_step1(g1_up, g1_down, g2_up, g2_down, tol, dynamic):
+    # This function is to be used for the first step of the priority heuristics
+    # as suggested by the 2008 paper. It is asymmetrical, which means that losses and gains 
+    # are treated differently (risk seeking for losses and risk aversion for gains).
+    # Since the paper does not specify what to do for mixed gambles (with both gains and losses) we 
+    # switch based on the average outcome. If the choice is deemed a 'loss' problem, we change sign of all values.
+
+    # Checks if the difference between the minimum of gamble 1 and minimum of gamble 2
     # is greater than the tolerance multiplied by the maximimum gain of gamble 2.
     # Returns true if the minimum gain is above the the threshold, indicating preference of the less risky choice of g1.
+    
+    #print("g1_up: ", g1_up, " g1_down: ", g1_down, " g2_up: ", g2_up, " g2_down: ", g2_down)
+    
+    if dynamic == "multiplicative":
+        g1_up = np.exp(g1_up)
+        g1_down = np.exp(g1_down)
+        g2_up = np.exp(g2_up)
+        g2_down = np.exp(g2_down)
 
-    g1_min = np.min([g1_up, g1_down])
-    g2_min = np.min([g2_up, g2_down])
+    # This variable is used to keep track of whether the signs of the gamble values have been reversed.
+    reversed = False
     
-    print("minimum values: ", g1_min," ", g2_min)
-    
-    g1_max = np.max([g1_up, g1_down])
-    g2_max = np.max([g2_up, g2_down])
-    
-    print("maximum value: ", g1_max, " ", g2_max)
-    
-    min_difference = g1_min - g2_min
-    if np.abs(min_difference) > tol * np.max([np.abs(g1_max), np.abs(g2_max)]):
-        if min_difference > 0:
-            return True
-        else:
-            return False
+    #Check if the average outcome is negative, if so, switch signs of all values
+    if (dynamic== "additive") and ((g1_up + g1_down + g2_up + g2_down)/4 < 0):
+        reversed = True
+
+    if reversed:
+        #calculate the minimum loss
+        g1_min = np.min([-g1_up, -g1_down])
+        g2_min = np.min([-g2_up, -g2_down])
+        #calculate the maximum loss
+        g1_max = np.max([-g1_up, -g1_down])
+        g2_max = np.max([-g2_up, -g2_down])
     else:
-        return False
+        #calculate the minimum gain
+        g1_min = np.min([g1_up, g1_down])
+        g2_min = np.min([g2_up, g2_down])
+        #calculate the maximum gain
+        g1_max = np.max([g1_up, g1_down])
+        g2_max = np.max([g2_up, g2_down])
+
+    min_difference = g1_min - g2_min
+    #print("minimum difference: ", min_difference)
+    #print("tolerance * maximum gain: ", tol * np.max([np.abs(g1_max), np.abs(g2_max)]))
+    
+    
+    #If the minimum gain/loss differ by tol (or more) of the maximum gain/loss
+    if np.abs(min_difference) > tol * np.max([g1_max, g2_max]):#it seems like the sign should change.
+    
+        if reversed:
+            # then choose the gamble with the lowest mimimum loss
+            if g1_min < g2_min:
+                return True
+        
+        if not reversed:
+            # then choose the gamble with the highest minumum gain
+            if g1_min > g2_min:
+                return True
+        
+    return False
+
+def priority_step3(g1_up, g1_down, g2_up, g2_down, dynamic):
+    # This is the third step of the priority heurstic (step 2 is about probabilities,
+    # and since they are all 0.5 in the experiment, we skip this step).
+    # The third step is about the maximum gain, and it is symmetrical, which means that losses and gains are treated the same way.)'
+    
+    if dynamic == "multiplicative":
+        g1_up = np.exp(g1_up)
+        g1_down = np.exp(g1_down)
+        g2_up = np.exp(g2_up)
+        g2_down = np.exp(g2_down)
+    
+    # This variable is used to keep track of whether the signs of the gamble values have been reversed.
+    reversed = False
+
+    #Check if the average outcome is negative, if so, switch signs of all values
+    if (g1_up + g1_down + g2_up + g2_down)/4 < 0:
+        reversed = True
+
+    if reversed:
+        #calculate the maximum loss
+        g1_max = np.max([-g1_up, -g1_down])
+        g2_max = np.max([-g2_up, -g2_down])
+
+    else:
+        #calculate the maximum gain
+        g1_max = np.max([g1_up, g1_down])
+        g2_max = np.max([g2_up, g2_down])
+
+    if reversed:
+        #pick the one with the lowest maximum loss:
+        if g1_max < g2_max:
+            return True
+        
+    if not reversed:
+        #pick the one with the highest maximum gain:
+        if g1_max > g2_max:
+            return True
+        
+    return False
+
+def priority_step1_no_loss(g1_up, g1_down, g2_up, g2_down, tol, dynamic):
+    # This is a version of priority_step1 that does not consider losses.
+    # This is done by by checking if any values are negative, and if so, 
+    # adding the absolute value of the minimum value to all values, so that they are all positive.
+
+    if dynamic == "multiplicative":
+        g1_up = np.exp(g1_up)
+        g1_down = np.exp(g1_down)
+        g2_up = np.exp(g2_up)
+        g2_down = np.exp(g2_down)
+
+    if min(g1_up, g1_down, g2_up, g2_down) < 0:
+        min_value = min(g1_up, g1_down, g2_up, g2_down)
+        g1_up += abs(min_value)
+        g1_down += abs(min_value)
+        g2_up += abs(min_value)
+        g2_down += abs(min_value)
+
+    return priority_step1(g1_up, g1_down, g2_up, g2_down, tol, "additive")
+
+def priority_step3_no_loss(g1_up, g1_down, g2_up, g2_down, dynamic):
+    # This is a version of priority_step3 that does not consider losses.
+    # This is done by by checking if any values are negative, and if so, 
+    # adding the absolute value of the minimum value to all values, so that they are all positive.
+
+    if dynamic == "multiplicative":
+        g1_up = np.exp(g1_up)
+        g1_down = np.exp(g1_down)
+        g2_up = np.exp(g2_up)
+        g2_down = np.exp(g2_down)
+
+    if min(g1_up, g1_down, g2_up, g2_down) < 0:
+        min_value = min(g1_up, g1_down, g2_up, g2_down)
+        g1_up += abs(min_value)
+        g1_down += abs(min_value)
+        g2_up += abs(min_value)
+        g2_down += abs(min_value)
+
+    return priority_step3(g1_up, g1_down, g2_up, g2_down, "additive")
+
+    
