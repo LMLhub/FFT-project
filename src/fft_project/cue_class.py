@@ -19,11 +19,12 @@ class Cue:
     cue_registry = {}
 
     def __init__(self,id: str, name: str, description: str, feature, type: str,
-                  threshold=None, params=None, required_args = list):
+                  direction=1, threshold=None, params=None, required_args = list):
         self.id = id #Unique identifier for the cue
         self.name = name #Short name of the cue
         self.description = description #Text description of the cue
         self.type = type #"numerical" or "boolean"
+        self.direction = direction # 1 or -1 to determine classification direction.
         self.feature = feature #feature function that takes a gamble pair and returns a value. Higher value favours first input gamble compared to second.
         self.params = params or {} #additional parameters for the feature function.
         self.threshold = threshold #threshold for numerical cues. For boolean cues, threshold is set to 0.
@@ -42,7 +43,7 @@ class Cue:
         param_names = list(sig.parameters.keys())
         if len(param_names) != len(self.params) + len(self.required_args) :
             raise ValueError(f"Feature function input mismatch: declared arguments ({len(param_names)}) and parameters ({len(self.params)}) do not add up to the total input to the feature function ({len(param_names)}).")
-                               
+
         # Check that all feature parameters are provided in params
         expected_params = set(param_names[len(self.required_args):])
         provided_params = set(self.params.keys())
@@ -63,8 +64,8 @@ class Cue:
             if self.threshold is None:
                 raise ValueError("Numerical cues require a threshold.")
             if not isinstance(self.threshold, (int, float)):
-                raise TypeError("Threshold must be numeric.")   
-            
+                raise TypeError("Threshold must be numeric.")
+
         # Register the cue in the class-level registry
         if self.id in Cue.cue_registry:
             raise ValueError(f"Cue with id '{self.id}' already exists. IDs must be unique.")
@@ -136,7 +137,7 @@ class Cue:
             side_if_true = None
 
         return cue_value, side_if_true
-            
+
     import pandas as pd
 
     def evaluate_df(self, gamble_data: pd.DataFrame) -> pd.DataFrame:
@@ -172,7 +173,7 @@ class Cue:
         extra_arg_names = self.required_args[4:]
 
         def evaluate_row(row):
-            # This function evaluates the cue for a single row of the DataFrame. 
+            # This function evaluates the cue for a single row of the DataFrame.
             # It extracts the required arguments from the row and passes them to the evaluate method.
 
             # Extract the four mandatory gamble values
@@ -200,7 +201,7 @@ class Cue:
         gamble_data[f"{self.id}_side_if_true"] = results.apply(lambda x: x[1])
 
         return gamble_data
-        
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -212,7 +213,7 @@ class Cue:
             "feature_name": self.feature.__name__,
             "required arguments": self.required_args
         }
-    
+
     @classmethod
     def save_registry(cls, filepath):
         # This method saves the cue registry to a YAML file.
