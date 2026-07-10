@@ -1,3 +1,4 @@
+from logging import config
 import sys
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from fft_project.cue_class import Cue
 from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility, signs, prefer_best_n_ranks, priority_step1, priority_step3, priority_step1_no_loss, priority_step3_no_loss, growth_rate_min
 from fft_project.config import read_config_file
 import pandas as pd
+import logging
 
 from fft_project.decision_class import FFT
 
@@ -15,11 +17,70 @@ CONFIG = read_config_file(PROJECT_ROOT / "config.yaml")
 GAMBLE_SIMULATION_CONFIG = CONFIG["gamble_simulation"]
 FRACTAL_VALUES = GAMBLE_SIMULATION_CONFIG["fractals_add"]
 FRACTAL_VALUES_MULTI = GAMBLE_SIMULATION_CONFIG["fractals_mul"]
+logger = logging.getLogger(__name__)
+
+def create_cues2(config):
+    logger.info("Creating cues based on the provided configuration...")
+    if config["gamble_simulation"]["dynamic"] == "multiplicative":
+        dynamic = "multiplicative"
+        fractal_values = config["gamble_simulation"]["fractals_mul"]
+    elif config["gamble_simulation"]["dynamic"] == "additive":
+        dynamic = "additive"
+        fractal_values = config["gamble_simulation"]["fractals_add"]
+    else:
+        raise ValueError(f"Invalid dynamic type: {config['gamble_simulation']['dynamic']}. Must be 'multiplicative' or 'additive'.")
+
+    Cue(
+        id="GR-max",
+        name="Maximising time-average growth rate",
+        description="This cue compares the growth rates of the gambles and picks the side with the highest time-average growth rate. Works for both additive and multiplicative dynamics.",
+        feature=growth_rate,
+        type="numerical",
+        threshold=0,
+        required_args=["gamma_left_up", "gamma_left_down", "gamma_right_up", "gamma_right_down"]
+    )
+
+    Cue(
+        id="GR-min",
+        name="Minimising time-average growth rate",
+        description="This cue compares the growth rates of the gambles and picks the side with the lowest time-average growth rate. Works for both additive and multiplicative dynamics.",
+        feature=growth_rate,
+        type="numerical",
+        direction=-1,
+        threshold=0,
+        required_args=["gamma_left_up", "gamma_left_down", "gamma_right_up", "gamma_right_down"]
+    )
+
+    eta=0.5
+    Cue(
+        id="EUT-eta-"+str(round(eta, 2)),
+        name=f"Expected Isoelastic Utility - eta={round(eta, 2)}, additive",
+        description=f"This cue that evaluates the expected isoelastic utility of the first gamble with eta={round(eta, 2)} and picks a side if the cue value is greater than 2.",
+        feature= expected_isoelastic_utility,
+        type="numerical",
+        threshold=0,
+        params={},
+        required_args=["gamma_left_up", "gamma_left_down", "gamma_right_up", "gamma_right_down", "wealth", "dynamic", "eta"]
+    )
+
+    n=2
+    Cue(
+        id          = "AW-"+str(n),
+        name        = f"Avoid worst {n} of all",
+        description = f"Prefers the gamble that does not contain the worst {n} fractal values.",
+        feature     = avoid_worst_n_ranks,
+        type        = "boolean",
+        params      = {},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down",
+                         "n", "fractal_values"]
+    )
+
 
 def create_cues():
     # This script creates cues and saves the cue registry to a yaml file. It can be run once and then deleted.
     # Example cue definition
-    
+
     Cue(
         id="gr",
         name="Maximising time-average growth rate",
@@ -239,7 +300,7 @@ def create_ffts():
         name="Avoid the worst",
         description="An example FFT with avoid the worst cue - multiplicative.",
         cues=[Cue.cue_registry["aw_1_m"]])
-    
+
     FFT(id="fft_gr",
         name="Growth rate maximisation",
         description="FFT with the growth rate cue",
@@ -249,27 +310,27 @@ def create_ffts():
         name="Expected Isoelastic Utility - eta=1.5",
         description="An example FFT with the expected isoelastic utility cue - additive.",
         cues=[Cue.cue_registry["eu_1_5_a"]])
-    
+
     FFT(id="fft_eu_1_5_m",
         name="Expected Isoelastic Utility - eta=1.5",
         description="An example FFT with the expected isoelastic utility cue - multiplicative.",
         cues=[Cue.cue_registry["eu_1_5_m"]])
-    
+
     FFT(id="fft_aw_2_a",
          name="Avoid the two worst",
          description="An example FFT with the avoid the worst cue.",
          cues=[Cue.cue_registry["aw_2_a"]])
-    
+
     FFT(id="fft_aw_2_m",
         name="Avoid the two worst",
         description="An example FFT with the avoid the worst cue - multiplicative",
-        cues=[Cue.cue_registry["aw_2_m"]])  
-    
+        cues=[Cue.cue_registry["aw_2_m"]])
+
     FFT(id="fft_fs",
         name="Positive fractal signs",
         description="FFT with the positive fractal signs cue. Works for both dynamics.",
         cues=[Cue.cue_registry["fs"]])
-    
+
     FFT(id="fft_aw_1_fs_a",
         name="Avoid the worst then positive fractal signs",
         description="FFT with the avoid the worst first, then choose based on positive fractal signs. Additive dynamic.",
@@ -279,17 +340,17 @@ def create_ffts():
         name="Positive fractal signs then avoid the worst",
         description="FFT with positive fractal signs then the avoid the worst first. Additive dynamic.",
         cues=[ Cue.cue_registry["fs"], Cue.cue_registry["aw_1_a"]])
-    
+
     FFT(id="fft_pb_1_a",
         name="Prefer the best",
         description="FFT that prefers the best if present. Additive dynamic.",
         cues=[ Cue.cue_registry["pb_1_a"]])
-   
+
     FFT(id="fft_aw_1_pb_1_a",
         name="Avoid the worst then prefer the best",
         description="FFT with avoid the worst then prefer the best. Additive dynamic.",
         cues=[ Cue.cue_registry["aw_1_a"], Cue.cue_registry["pb_1_a"]])
-    
+
     FFT(id="fft_pb_1_aw_1_a",
         name="Avoid the worst then prefer the best",
         description="FFT with avoid the worst then prefer the best. Additive dynamic.",
@@ -299,12 +360,12 @@ def create_ffts():
         name="Prefer the best",
         description="FFT that prefers the best if present. Additive dynamic.",
         cues=[ Cue.cue_registry["pb_1_m"]])
-   
+
     FFT(id="fft_aw_1_pb_1_m",
         name="Avoid the worst then prefer the best",
         description="FFT with avoid the worst then prefer the best. Additive dynamic.",
         cues=[ Cue.cue_registry["aw_1_m"], Cue.cue_registry["pb_1_m"]])
-    
+
     FFT(id="fft_pb_1_aw_1_m",
         name="Avoid the worst then prefer the best",
         description="FFT with avoid the worst then prefer the best. Additive dynamic.",
@@ -314,7 +375,7 @@ def create_ffts():
         name="Positive fractal signs then avoid the worst",
         description="FFT with positive fractal signs then the avoid the worst first. Additive dynamic.",
         cues=[ Cue.cue_registry["fs"], Cue.cue_registry["aw_1_m"]])
-    
+
     FFT(id="pri_a",
         name="Priority heuristic",
         description="The priority heuristic as described by Brandstätter, Gigerenzer, and Hertwig (2006). For additive dynamics",
@@ -324,7 +385,7 @@ def create_ffts():
         name="Priority heuristic",
         description="The priority heuristic as described by Brandstätter, Gigerenzer, and Hertwig (2006) but with different tolerance. For multiplicative dynamics",
         cues=[ Cue.cue_registry["pri_1_35_m"], Cue.cue_registry["pri_3_m"]])
-    
+
     FFT(id="pri_nl_a",
         name="Priority heuristic (no loss)",
         description="The priority heuristic as described by Brandstätter, Gigerenzer, and Hertwig (2006) without the loss option and with different tolerance. For additive dynamics",
@@ -341,7 +402,7 @@ def create_ffts():
         cues=[ Cue.cue_registry["gr_min"]])
 
 
-    
+
 def create_cues_ffts(filepath=None):
     create_cues()
     create_ffts()
