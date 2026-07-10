@@ -17,6 +17,8 @@ nav:
   - Notes:
       - Overview: notes/index.md
       - Greedy FFT Construction Notes: notes/greedy.md
+      - Priority heuristic: notes/priority.md
+
 
 markdown_extensions:
   - admonition
