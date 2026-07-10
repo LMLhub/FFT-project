@@ -26,8 +26,7 @@ FRACTAL_VALUES = GAMBLE_SIMULATION_CONFIG["fractals_add"]
 FRACTAL_VALUES_MULTI = GAMBLE_SIMULATION_CONFIG["fractals_mul"]
 
 FFT_NAMES_A = ["fft_gr", "fft_aw_1_a", "fft_aw_2_a", "fft_pb_1_a","fft_pb_1_aw_1_a", "fft_fs", "fft_fs_aw_1_a", "pri_a", "pri_nl_a" ]
-#FFT_NAMES_M = ["fft_gr", "fft_aw_1_m", "fft_aw_2_m", "fft_pb_1_m","fft_pb_1_aw_1_m", "fft_fs", "fft_fs_aw_1_m", "pri_m", "pri_nl_m" ]
-FFT_NAMES_M = ["fft_gr", "fft_fs", "fft_fs_aw_1_m", "pri_m" ]
+FFT_NAMES_M = ["fft_gr", "fft_aw_1_m", "fft_aw_2_m", "fft_pb_1_m","fft_pb_1_aw_1_m", "fft_fs", "fft_fs_aw_1_m", "pri_m", "pri_nl_m"]
 
 def initialise():
     create_cues_ffts()
@@ -245,6 +244,6 @@ def plot_experiment_match():
 if __name__ == "__main__":
     initialise()
     # test()
-    #plot_gamma_match()
+    plot_gamma_match()
     plot_growth_rate_match()
     plot_experiment_match()

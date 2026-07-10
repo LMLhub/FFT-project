@@ -9,6 +9,12 @@ def growth_rate(g1_up, g1_down, g2_up, g2_down):
     # the expected value of the fractal values for both dynamics.
     return (g1_up + g1_down)/2
 
+def growth_rate_min(g1_up, g1_down, g2_up, g2_down):
+    #This function calculates the growth rate of the g1 given the dynamic.
+    # Fractal values g must be gamma values, such that the growth rate is 
+    # the expected value of the fractal values for both dynamics.
+    return -(g1_up + g1_down)/2
+
 def expected_isoelastic_utility(g1_up, g1_down, g2_up, g2_down, wealth, dynamic, eta):
     #This function calculates the expected isoelastic utility of the g1 given the eta parameter.
     if dynamic == "multiplicative":
@@ -104,19 +110,18 @@ def priority_step1(g1_up, g1_down, g2_up, g2_down, tol, dynamic):
     # is greater than the tolerance multiplied by the maximimum gain of gamble 2.
     # Returns true if the minimum gain is above the the threshold, indicating preference of the less risky choice of g1.
     
-    #print("g1_up: ", g1_up, " g1_down: ", g1_down, " g2_up: ", g2_up, " g2_down: ", g2_down)
     
     if dynamic == "multiplicative":
-        g1_up = np.exp(g1_up)
-        g1_down = np.exp(g1_down)
-        g2_up = np.exp(g2_up)
-        g2_down = np.exp(g2_down)
+        g1_up = np.exp(g1_up)-1
+        g1_down = np.exp(g1_down)-1
+        g2_up = np.exp(g2_up)-1
+        g2_down = np.exp(g2_down)-1
 
     # This variable is used to keep track of whether the signs of the gamble values have been reversed.
     reversed = False
     
     #Check if the average outcome is negative, if so, switch signs of all values
-    if (dynamic== "additive") and ((g1_up + g1_down + g2_up + g2_down)/4 < 0):
+    if ((g1_up + g1_down + g2_up + g2_down)/4 < 0):
         reversed = True
 
     if reversed:
@@ -135,7 +140,9 @@ def priority_step1(g1_up, g1_down, g2_up, g2_down, tol, dynamic):
         g2_max = np.max([g2_up, g2_down])
 
     min_difference = g1_min - g2_min
-    #print("minimum difference: ", min_difference)
+    #print("reversed: ", reversed)
+    #print("g1_up: ", g1_up, " g1_down: ", g1_down, " g2_up: ", g2_up, " g2_down: ", g2_down)
+    #print("minimum difference: ", min_difference, " g1_min: ", g1_min, " g2_min: ", g2_min)
     #print("tolerance * maximum gain: ", tol * np.max([np.abs(g1_max), np.abs(g2_max)]))
     
     
@@ -160,10 +167,10 @@ def priority_step3(g1_up, g1_down, g2_up, g2_down, dynamic):
     # The third step is about the maximum gain, and it is symmetrical, which means that losses and gains are treated the same way.)'
     
     if dynamic == "multiplicative":
-        g1_up = np.exp(g1_up)
-        g1_down = np.exp(g1_down)
-        g2_up = np.exp(g2_up)
-        g2_down = np.exp(g2_down)
+        g1_up = np.exp(g1_up)-1
+        g1_down = np.exp(g1_down)-1
+        g2_up = np.exp(g2_up)-1
+        g2_down = np.exp(g2_down)-1
     
     # This variable is used to keep track of whether the signs of the gamble values have been reversed.
     reversed = False
@@ -200,17 +207,23 @@ def priority_step1_no_loss(g1_up, g1_down, g2_up, g2_down, tol, dynamic):
     # adding the absolute value of the minimum value to all values, so that they are all positive.
 
     if dynamic == "multiplicative":
-        g1_up = np.exp(g1_up)
-        g1_down = np.exp(g1_down)
-        g2_up = np.exp(g2_up)
-        g2_down = np.exp(g2_down)
-
+        g1_up = np.exp(g1_up)-1
+        g1_down = np.exp(g1_down)-1
+        g2_up = np.exp(g2_up)-1
+        g2_down = np.exp(g2_down)-1
+    '''
     if min(g1_up, g1_down, g2_up, g2_down) < 0:
         min_value = min(g1_up, g1_down, g2_up, g2_down)
         g1_up += abs(min_value)
         g1_down += abs(min_value)
         g2_up += abs(min_value)
         g2_down += abs(min_value)
+    '''
+    min_value = min(g1_up, g1_down, g2_up, g2_down)
+    g1_up -= min_value
+    g1_down -= min_value
+    g2_up -= min_value
+    g2_down -= min_value
 
     return priority_step1(g1_up, g1_down, g2_up, g2_down, tol, "additive")
 
@@ -220,17 +233,23 @@ def priority_step3_no_loss(g1_up, g1_down, g2_up, g2_down, dynamic):
     # adding the absolute value of the minimum value to all values, so that they are all positive.
 
     if dynamic == "multiplicative":
-        g1_up = np.exp(g1_up)
-        g1_down = np.exp(g1_down)
-        g2_up = np.exp(g2_up)
-        g2_down = np.exp(g2_down)
-
+        g1_up = np.exp(g1_up)-1
+        g1_down = np.exp(g1_down)-1
+        g2_up = np.exp(g2_up)-1
+        g2_down = np.exp(g2_down)-1
+    '''
     if min(g1_up, g1_down, g2_up, g2_down) < 0:
         min_value = min(g1_up, g1_down, g2_up, g2_down)
         g1_up += abs(min_value)
         g1_down += abs(min_value)
         g2_up += abs(min_value)
         g2_down += abs(min_value)
+    '''
+    min_value = min(g1_up, g1_down, g2_up, g2_down)
+    g1_up -= min_value
+    g1_down -= min_value
+    g2_up -= min_value
+    g2_down -= min_value
 
     return priority_step3(g1_up, g1_down, g2_up, g2_down, "additive")
 

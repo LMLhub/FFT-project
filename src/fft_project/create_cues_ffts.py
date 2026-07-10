@@ -5,7 +5,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from fft_project.cue_class import Cue
-from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility, signs, prefer_best_n_ranks, priority_step1, priority_step3, priority_step1_no_loss, priority_step3_no_loss
+from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility, signs, prefer_best_n_ranks, priority_step1, priority_step3, priority_step1_no_loss, priority_step3_no_loss, growth_rate_min
 from fft_project.config import read_config_file
 import pandas as pd
 
@@ -25,6 +25,16 @@ def create_cues():
         name="Maximising time-average growth rate",
         description="This cue compares the growth rates of the gambles and picks the side with the highest time-average growth rate. Works for both additive and multiplicative dynamics.",
         feature= growth_rate,
+        type="numerical",
+        threshold=0,
+        required_args=["gamma_left_up", "gamma_left_down", "gamma_right_up", "gamma_right_down"]
+    )
+
+    Cue(
+        id="gr_min",
+        name="Minimising time-average growth rate",
+        description="This cue compares the growth rates of the gambles and picks the side with the lowest time-average growth rate. Works for both additive and multiplicative dynamics.",
+        feature= growth_rate_min,
         type="numerical",
         threshold=0,
         required_args=["gamma_left_up", "gamma_left_down", "gamma_right_up", "gamma_right_down"]
@@ -136,7 +146,7 @@ def create_cues():
         description = "Give preference to the gamble with the highest minimum gains if the minimum gains differs by 10 percent of the maximum gain",
         feature     = priority_step1,
         type        = "boolean",
-        params      = {"tol": 0.1, "dynamic": "additive"},
+        params      = {"tol": 0.5, "dynamic": "additive"}, #0.5 seems to be a good value
         required_args = ["gamma_left_up", "gamma_left_down",
                          "gamma_right_up", "gamma_right_down"],
     )
@@ -158,7 +168,7 @@ def create_cues():
         description = "Give preference to the gamble with the highest minimum gains if the minimum gains differs by 10 percent of the maximum gain",
         feature     = priority_step1,
         type        = "boolean",
-        params      = {"tol": 0.1, "dynamic": "multiplicative"},
+        params      = {"tol": 0.35, "dynamic": "multiplicative"},#0.35 seems to be a good value
         required_args = ["gamma_left_up", "gamma_left_down",
                          "gamma_right_up", "gamma_right_down"],
     )
@@ -180,7 +190,7 @@ def create_cues():
         description = "Give preference to the gamble with the highest minimum gains if the minimum gains differs by 10 percent of the maximum gain. Before evaluating, all outcomes are moved such that they are positive",
         feature     = priority_step1_no_loss,
         type        = "boolean",
-        params      = {"tol": 0.1, "dynamic": "additive"},
+        params      = {"tol": 0.4, "dynamic": "additive"}, #0.4 seem to be a good value
         required_args = ["gamma_left_up", "gamma_left_down",
                          "gamma_right_up", "gamma_right_down"],
     )
@@ -202,7 +212,7 @@ def create_cues():
         description = "Give preference to the gamble with the highest minimum gains if the minimum gains differs by 10 percent of the maximum gain. Before evaluating, all outcomes are moved such that they are positive",
         feature     = priority_step1_no_loss,
         type        = "boolean",
-        params      = {"tol": 0.1, "dynamic": "multiplicative"},
+        params      = {"tol": 0.2, "dynamic": "multiplicative"}, #0.2 seems to be a good value
         required_args = ["gamma_left_up", "gamma_left_down",
                          "gamma_right_up", "gamma_right_down"],
     )
@@ -324,6 +334,11 @@ def create_ffts():
         name="Priority heuristic (no loss)",
         description="The priority heuristic as described by Brandstätter, Gigerenzer, and Hertwig (2006) without the loss option. For multiplicative dynamics",
         cues=[ Cue.cue_registry["pri_nl_1_01_m"], Cue.cue_registry["pri_nl_3_m"]])
+
+    FFT(id="fft_gr_min",
+        name="Growth rate minimisation",
+        description="This fft chooses the opposite of the growth rate maximisation",
+        cues=[ Cue.cue_registry["gr_min"]])
 
 
     
