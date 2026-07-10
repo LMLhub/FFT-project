@@ -60,6 +60,10 @@ $$ M^{i} = \max_{} ((\Delta x)^{i}_1, (\Delta x)^{i}_2) $$
 The rule implies three cues to be evaluated in order.
 
 #### Pre-processing
+For the multiplicative case, all fractal values must be turned into changes in wealth. Since wealth cancels out in all equations in this decision rule, it is sufficient to represent changes in wealth by their multiplicative factor, i.e. we have $\Delta x = e^g -1$ where $g$ is the "gamma" value of the fractal.
+
+In the additive case, fractal values are represented by changes in wealth and hence $\Delta x = g$, where $g$ is the fractal "gamma" value.
+
 Since the choices in the experiment rarely concerns gambles with purely gains or losses, we need a method to decide when to use the rule for gains and when to use the rule for losses.
 
 In version 1, we use the gains rule whenever the average outcome of all four fractals is positive, and the loss rule if negative:
