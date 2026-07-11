@@ -7,6 +7,8 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from fft_project.cue_class import Cue
 from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility, signs, prefer_best_n_ranks, priority_step1, priority_step3, priority_step1_no_loss, priority_step3_no_loss, growth_rate_min
+from fft_project.cue_features import avoid_worst_available, prefer_best_available, max_sum_ranks
+from fft_project.cue_features import fractal_signs, priority_step1, priority_step3, priority_step1_no_loss, priority_step3_no_loss
 from fft_project.config import read_config_file
 import pandas as pd
 import logging
@@ -30,6 +32,7 @@ def create_cues2(config):
     else:
         raise ValueError(f"Invalid dynamic type: {config['gamble_simulation']['dynamic']}. Must be 'multiplicative' or 'additive'.")
 
+    # Maximize growth rate
     Cue(
         id="GR-max",
         name="Maximising time-average growth rate",
@@ -40,6 +43,7 @@ def create_cues2(config):
         required_args=["gamma_left_up", "gamma_left_down", "gamma_right_up", "gamma_right_down"]
     )
 
+    # Minimize growth rate
     Cue(
         id="GR-min",
         name="Minimising time-average growth rate",
@@ -51,11 +55,11 @@ def create_cues2(config):
         required_args=["gamma_left_up", "gamma_left_down", "gamma_right_up", "gamma_right_down"]
     )
 
-    eta=0.5
+    # Maximize difference in expected utility
     Cue(
-        id="EUT-eta-"+str(round(eta, 2)),
-        name=f"Expected Isoelastic Utility - eta={round(eta, 2)}, additive",
-        description=f"This cue that evaluates the expected isoelastic utility of the first gamble with eta={round(eta, 2)} and picks a side if the cue value is greater than 2.",
+        id="EUT",
+        name=f"Expected Isoelastic Utility",
+        description=f"This cue that evaluates the expected isoelastic utility of the first gamble with provided eta value",
         feature= expected_isoelastic_utility,
         type="numerical",
         threshold=0,
@@ -63,17 +67,128 @@ def create_cues2(config):
         required_args=["gamma_left_up", "gamma_left_down", "gamma_right_up", "gamma_right_down", "wealth", "dynamic", "eta"]
     )
 
-    n=2
+    # Avoid the worst of all possible outcomes
     Cue(
-        id          = "AW-"+str(n),
-        name        = f"Avoid worst {n} of all",
-        description = f"Prefers the gamble that does not contain the worst {n} fractal values.",
+        id          = "AW",
+        name        = f"Avoid worst n of all",
+        description = f"Prefers the gamble that does not contain the worst n fractal values where n is passed.",
         feature     = avoid_worst_n_ranks,
         type        = "boolean",
         params      = {},
         required_args = ["gamma_left_up", "gamma_left_down",
                          "gamma_right_up", "gamma_right_down",
                          "n", "fractal_values"]
+    )
+
+    # Avoid the worst of current possible outcomes
+    Cue(
+        id          = "AW-a",
+        name        = f"Avoid worst of available options",
+        description = f"Prefers the gamble that avoids the worst of the 4 possible outcomes.",
+        feature     = avoid_worst_available,
+        type        = "boolean",
+        params      = {},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down"]
+    )
+
+    # Seek the best of all possible outcomes
+    Cue(
+        id          = "PB",
+        name        = f"Prefer best n of all",
+        description = f"Prefers the gamble that contains the best n fractal values where n is passed.",
+        feature     = prefer_best_n_ranks,
+        type        = "boolean",
+        params      = {},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down",
+                         "n", "fractal_values"]
+    )
+
+    # Seek the best of current possible outcomes
+    Cue(
+        id          = "PB-a",
+        name        = f"Prefer best of available options",
+        description = f"Prefers the gamble that contains the best of the 4 possible outcomes.",
+        feature     = prefer_best_available,
+        type        = "boolean",
+        params      = {},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down"]
+    )
+
+    # Maximise sum of ranks
+    Cue(
+        id          = "SR",
+        name        = f"Maximise sum of ranks",
+        description = f"Prefers the gamble that contains the highest combined fractal ranks.",
+        feature     = max_sum_ranks,
+        type        = "numerical",
+        threshold   = 0,
+        params      = {},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down", "fractal_values"]
+    )
+
+    # Maximise combined signs of gambles
+    Cue(
+        id          = "SGN",
+        name        = f"Maximise number of positive signed outcomes",
+        description = f"Prefers the gamble that contains more positive outcomes",
+        feature     = fractal_signs,
+        type        = "numerical",
+        threshold   = 0,
+        params      = {},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down", "fractal_values"]
+    )
+
+     # Priority heuristic step 1 - avoid worst outcomes
+    Cue(
+        id          = "PH-1",
+        name        = f"Priority heuristic step 1 (original version)",
+        description = f"Checks if the worst outcome of gamble 2 is clearly much worse than the worst outcome for gamble 1",
+        feature     = priority_step1,
+        type        = "boolean",
+        params      = {},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down", "tol", "dynamic"]
+    )
+
+     # Priority heuristic step 3 - choose the best outcome
+    Cue(
+        id          = "PH-3",
+        name        = f"Priority heuristic step 3 (original version)",
+        description = f"Checks if the best outcome of gamble 1 is better than the best outcome of gamble 2",
+        feature     = priority_step3,
+        type        = "boolean",
+        params      = {},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down", "dynamic"]
+    )
+
+     # Priority heuristic no loss version step 1 - avoid worst outcomes
+    Cue(
+        id          = "PH-NL-1",
+        name        = f"Priority heuristic step 1 (no loss version)",
+        description = f"Checks if the worst outcome of gamble 2 is clearly much worse than the worst outcome for gamble 1",
+        feature     = priority_step1_no_loss,
+        type        = "boolean",
+        params      = {},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down", "tol", "dynamic"]
+    )
+
+     # Priority heuristic no loss step 3 - choose the best outcome
+    Cue(
+        id          = "PH-NL-3",
+        name        = f"Priority heuristic step 3 (no loss version)",
+        description = f"Checks if the best outcome of gamble 1 is better than the best outcome of gamble 2",
+        feature     = priority_step3_no_loss,
+        type        = "boolean",
+        params      = {},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                         "gamma_right_up", "gamma_right_down", "dynamic"]
     )
 
 

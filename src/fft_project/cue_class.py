@@ -19,7 +19,7 @@ class Cue:
     cue_registry = {}
 
     def __init__(self,id: str, name: str, description: str, feature, type: str,
-                  direction=1, threshold=None, params=None, required_args = list):
+                  direction=1, threshold=None, params=None, required_args = []):
         self.id = id #Unique identifier for the cue
         self.name = name #Short name of the cue
         self.description = description #Text description of the cue

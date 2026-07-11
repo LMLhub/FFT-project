@@ -52,6 +52,12 @@ def avoid_worst_n_ranks(g1_up, g1_down, g2_up, g2_down, n, fractal_values):
     else:
         return True
 
+def max_sum_ranks(g1_up, g1_down, g2_up, g2_down, fractal_values):
+    # Returns the sum of ranks of gamble 1. Should be equivalent to growth rate
+    # maximization for linearly spaced growth rate values
+    ranked_values = sorted(fractal_values)
+    return ranked_values.index(g1_up) + ranked_values.index(g1_down)
+
 def fractal_signs(g1_up, g1_down, g2_up, g2_down, fractal_values):
     #Counts the number of positive fractal values in gamble 1.
     #Returns 2 if both g1_up and g1_down are positive.
@@ -95,6 +101,26 @@ def prefer_best_n_ranks(g1_up, g1_down, g2_up, g2_down, n, fractal_values):
         raise ValueError(f"Gamble values {g1_up}, {g1_down} are not in fractal_values.")
     best_values = sorted(fractal_values)[-n:]
     if g1_up in best_values or g1_down in best_values:
+        return True
+    else:
+        return False
+
+def prefer_best_available(g1_up, g1_down, g2_up, g2_down):
+    #Checks if gamble 1 contains the best outcome of the 4 possible outcomes.
+    #Returns True if g1_up or g1_down is the best outcome among the 4 possible outcomes.
+    #Returns False otherwise.
+    best_value = max(g1_up, g1_down, g2_up, g2_down)
+    if g1_up == best_value or g1_down == best_value:
+        return True
+    else:
+        return False
+
+def avoid_worst_available(g1_up, g1_down, g2_up, g2_down):
+    #Checks if gamble 2 contains the worst outcome of the 4 possible outcomes.
+    #Returns True if g1_up or g1_down is the worst outcome among the 4 possible outcomes.
+    #Returns False otherwise.
+    worst_value = min(g1_up, g1_down, g2_up, g2_down)
+    if g2_up == worst_value or g2_down == worst_value:
         return True
     else:
         return False
