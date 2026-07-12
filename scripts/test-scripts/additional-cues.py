@@ -1,6 +1,10 @@
 from pathlib import Path
 import sys
 import logging
+import copy
+import numpy as np
+import pandas as pd
+
 
 from fft_project.config import read_dotenv, parse_args, read_config_file, setup_logging
 from fft_project.config import setup_run_id, setup_output_folders, save_config
@@ -9,9 +13,11 @@ from fft_project.simulation_gamble_data import simulate_gamble_data
 from fft_project.create_cues_ffts import create_cues2
 from fft_project.cue_class import Cue
 
+
+
 import matplotlib.pyplot as plt
 
-
+logger = logging.getLogger(__name__)
 
 def main():
   # Parse command-line arguments
@@ -52,16 +58,19 @@ def main():
     priority_heuristic_tolerance = 0.4
   else:
     raise ValueError(f"Invalid dynamic type: {config['gamble_simulation']['dynamic']}. Must be 'multiplicative' or 'additive'.")
-
-  cue_args = {"dynamic": dynamic,
-                 "eta": 0.5,
-                 "fractal_values": fractal_values,
-                 "n": 2,
-                 "tol" : priority_heuristic_tolerance
-                 }
-  # add a wealth column for testing purposes
-  import numpy as np
+   # add a wealth column to gamble_data for testing purposes
   gamble_data["wealth"] = np.random.randint(410, 810, size=len(gamble_data))
+
+# This is where all the additional arguments required by some Cue objects
+# are set
+  cue_args = {"dynamic": dynamic,
+              "eta": 0.5,
+              "fractal_values": fractal_values,
+              "n": 2,
+              "tol" : priority_heuristic_tolerance
+              }
+
+
 
   print(f"Simulated gamble data with {len(gamble_data)} rows.")
   #print(gamble_data.describe())
@@ -69,21 +78,48 @@ def main():
   # Set up cues and set up the cue registry
   create_cues2(config)
 
-  for k, cue in Cue.cue_registry.items():
+  # Copy the cue registry to a dict
+  all_cues = Cue.cue_registry
+
+  # Create the complement of each cue and add it to the list for e
+  # subsequent evaluation
+  complement_cues={}
+  for (id, cue) in all_cues.items():
+    new_id = id+"-minus"
+    complement_cues[new_id] = copy.deepcopy(cue)
+    complement_cues[new_id].id = new_id
+    complement_cues[new_id].direction = - cue.direction
+  for (id, cue) in complement_cues.items():
+    all_cues[id] = cue
+
+  # Choose preferred gamble using each cue in isolation. When we use a single
+  # cue in isolation, it might be absent for a given pair of gambles or might
+  # not be above threshold. When this happens, preference is assigned randomly.
+  # For each cue, we add two columns to the gamble_data DataFrame:
+  #  -  cue.id + "_choice" : the choice made for each gamble if only the current
+  #                          cue in isolation is used
+  #  -  cue.id+"_random".  : whether the is choice is random or not
+
+  for (k, cue) in all_cues.items():
     logging.info(f"Cue ID: {cue.id}, Name: {cue.name}")
     class_column_name = f"{cue.id}_choice"
     random_decision_column_name = f"{cue.id}_random_decision"
     label = {"left" : 1, "right": -1}
 
-    # Iterate over the rows in gamble_data and apply the cue's feature function to each row
+    # Iterate over the rows in gamble_data and evaluate the current cue for
+    # the gamble pair contained in each row.
     for idx, gamble_row in gamble_data.iterrows():
-      #logging.info(f"Row {idx}: columns '{gamble_row.index.tolist()}'")
+      # Get the gamble parameters
       g_l_up = gamble_row["gamma_left_up"]
       g_l_down = gamble_row["gamma_left_down"]
       g_r_up = gamble_row["gamma_right_up"]
       g_r_down = gamble_row["gamma_right_down"]
       wealth = gamble_row["wealth"]
+      # Read what additional arguments the current cue requires
       extra_arg_names = cue.required_args[4:] if getattr(cue, "required_args", None) else []
+      # Check that all the required additional arguments are defined (either
+      # as columns in gamble_data or in the cue_args dict) and assemble them
+      # the extra_args dict.
       extra_args = {}
       for name in extra_arg_names:
         if name in gamble_row.index:
@@ -93,13 +129,28 @@ def main():
         else:
           raise ValueError(f"Missing required argument '{name}' for cue '{cue.id}' in row {idx}.")
 
-      cue_value, side_if_true = cue.evaluate(g_l_up, g_l_down, g_r_up, g_r_down, **extra_args)
+      # Now we have everything we need to evaluate the current cue on the current
+      # gamble
+      _, side_if_true = cue.evaluate(g_l_up, g_l_down, g_r_up, g_r_down, **extra_args)
+
+      # Decide which side is preferred and record the random choices for later
+      # evaluation
       if side_if_true is not None:
           gamble_data.loc[idx, class_column_name] = label[side_if_true]
-          #print(f"Index: {idx}, Cue Value: {cue_value}, Side if True: {side_if_true}")
       else:
           gamble_data.loc[idx, class_column_name] = np.random.choice([1, -1])  # Randomly choose left or right if side_if_true is None
           gamble_data.loc[idx, random_decision_column_name] = True
+
+  # Now measure the performance of the cues
+  evaluation = pd.DataFrame(index=all_cues.keys(), columns = ["TPR", "FPR", "random", "purity" ])
+  for (id, cue) in all_cues.items():
+    print(f"Evaluating cue {id}")
+    # Proportion of random choices
+
+    # TPR and FPR
+
+    # Gini purity of instances that were not classified randomly
+
 
   return 0
 
