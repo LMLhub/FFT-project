@@ -159,11 +159,65 @@ def main():
     evaluation.loc[id, "TPR"] = TPR
     evaluation.loc[id, "FPR"] = FPR
 
-
-
     # Gini purity of instances that were not classified randomly
+    nonrandom_df = gamble_data[gamble_data[f"{id}_random"] == False]
+    Gini_purity = 1 - Gini_impurity_partition(nonrandom_df, f"{id}_choice", "GR-max_choice", [1, -1], verbose=False)
+    evaluation.loc[id, "purity"] = Gini_purity
 
   print(evaluation)
+
+  # Select the cues which have TPR > FPR
+  predictive_cues = evaluation[evaluation["TPR"] > evaluation["FPR"]]
+  # Drop  cues that are duplicates
+  predictive_cues = predictive_cues.drop(index=["GR-min-minus", "AW-a-minus", "PB-a"])
+  print(f"Predictive cues (TPR > FPR): {len(predictive_cues)}")
+  # Sort the predictive cues by TPR
+  predictive_cues = predictive_cues.sort_values(by="TPR", ascending=False)
+  print(predictive_cues)
+
+  # Create a plot of TPR vs FPR for the predictive cues
+  fig, ax = plt.subplots(figsize=(6, 6))
+  ax.scatter(predictive_cues["FPR"], predictive_cues["TPR"], color='red', label='Predictive Cues')
+  ax.plot([0, 1], [0, 1], linestyle='--', color='gray', label='TPR = FPR')
+  # Label each point with the cue id (DataFrame index)
+  for cue_id, row in predictive_cues.iterrows():
+    ax.annotate(
+        str(cue_id),
+        (row["FPR"], row["TPR"]),
+        textcoords="offset points",
+        xytext=(5, 5),   # slight offset so text is not on top of marker
+        fontsize=8
+    )
+  ax.set_xlim(0, 1)
+  ax.set_ylim(0, 1)
+  ax.set_xlabel("FPR")
+  ax.set_ylabel("TPR")
+  ax.set_title("TPR vs FPR for Cues")
+  ax.legend()
+  #plt.show()  # This remains the same as it is a global function to display the plot
+  # save plot to output folder
+  fig.savefig(Path(REMOTE_DRIVE) / Path(f"{config['run_id']}/4-visualizations/TPR_vs_FPR_{dynamic}.png"))
+
+  # Plot Gini purity vs non-random proportion for the predictive cues
+  fig, ax = plt.subplots(figsize=(6, 6))
+  ax.scatter(predictive_cues["non-random"], predictive_cues["purity"], color='blue', label='Predictive Cues')
+  # Label each point with the cue id (DataFrame index)
+  for cue_id, row in predictive_cues.iterrows():
+    ax.annotate(
+        str(cue_id),
+        (row["non-random"], row["purity"]),
+        textcoords="offset points",
+        xytext=(5, 5),   # slight offset so text is not on top of marker
+        fontsize=8
+    )
+  ax.set_xlim(0, 1.25)
+  ax.set_ylim(0, 1.25)
+  ax.set_xlabel("Proportion of Non-Random Choices")
+  ax.set_ylabel("Gini Purity")
+  ax.set_title("Gini Purity vs Non-Random Proportion for Cues")
+  ax.legend()
+  fig.savefig(Path(REMOTE_DRIVE) / Path(f"{config['run_id']}/4-visualizations/Gini_purity_vs_nonrandom_{dynamic}.png"))
+  #plt.show()  # This remains the same as it is a global function to display the
 
   return 0
 
