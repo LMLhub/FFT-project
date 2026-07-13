@@ -131,8 +131,9 @@ class Cue:
         F_value = f_LR - f_RL
         cue_value = abs(F_value)
 
+        sgn = self.direction
         if cue_value > self.threshold:
-            side_if_true = "left" if F_value > self.threshold else "right"
+            side_if_true = "left" if sgn*F_value > self.threshold else "right"
         else:
             side_if_true = None
 

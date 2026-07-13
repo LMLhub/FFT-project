@@ -12,7 +12,7 @@ from fft_project.cue_features import expected_isoelastic_utility
 from fft_project.simulation_gamble_data import simulate_gamble_data
 from fft_project.create_cues_ffts import create_cues2
 from fft_project.cue_class import Cue
-
+from fft_project.utilities import confusion_rates, Gini_impurity_partition
 
 
 import matplotlib.pyplot as plt
@@ -102,8 +102,12 @@ def main():
 
   for (k, cue) in all_cues.items():
     logging.info(f"Cue ID: {cue.id}, Name: {cue.name}")
+    # Add new columns to gamble_data to contain information about choices made
+    # using current cue
     class_column_name = f"{cue.id}_choice"
-    random_decision_column_name = f"{cue.id}_random_decision"
+    gamble_data[class_column_name]=0
+    random_decision_column_name = f"{cue.id}_random"
+    gamble_data[random_decision_column_name] = False
     label = {"left" : 1, "right": -1}
 
     # Iterate over the rows in gamble_data and evaluate the current cue for
@@ -142,15 +146,24 @@ def main():
           gamble_data.loc[idx, random_decision_column_name] = True
 
   # Now measure the performance of the cues
-  evaluation = pd.DataFrame(index=all_cues.keys(), columns = ["TPR", "FPR", "random", "purity" ])
+  evaluation = pd.DataFrame(index=all_cues.keys(), columns = ["TPR", "FPR", "non-random", "purity" ])
   for (id, cue) in all_cues.items():
     print(f"Evaluating cue {id}")
-    # Proportion of random choices
+    # Proportion of non-random choices
+    nonrandom_choices = len(gamble_data[gamble_data[f"{id}_random"] == False])
+    total_choices = len(gamble_data)
+    evaluation.loc[id, "non-random"] = nonrandom_choices/total_choices
 
     # TPR and FPR
+    TPR, FPR, _, _ = confusion_rates(gamble_data, f"{id}_choice","GR-max_choice", 1, verbose=False)
+    evaluation.loc[id, "TPR"] = TPR
+    evaluation.loc[id, "FPR"] = FPR
+
+
 
     # Gini purity of instances that were not classified randomly
 
+  print(evaluation)
 
   return 0
 
