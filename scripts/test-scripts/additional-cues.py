@@ -49,13 +49,15 @@ def main():
   if config["gamble_simulation"]["dynamic"] == "multiplicative":
     dynamic = "multiplicative"
     fractal_values = config["gamble_simulation"]["fractals_mul"]
-    priority_heuristic_tolerance = 0.1
+    priority_heuristic_tolerance = 0.35
+    priority_heuristic_tolerance_no_loss = 0.2
     gamble_data = simulate_gamble_data(100, config["gamble_simulation"]["fractals_mul"], random_seed = 42)
   elif config["gamble_simulation"]["dynamic"] == "additive":
     dynamic = "additive"
     fractal_values = config["gamble_simulation"]["fractals_add"]
     gamble_data = simulate_gamble_data(100, config["gamble_simulation"]["fractals_add"], random_seed = 42)
-    priority_heuristic_tolerance = 0.4
+    priority_heuristic_tolerance = 0.5
+    priority_heuristic_tolerance_no_loss = 0.4
   else:
     raise ValueError(f"Invalid dynamic type: {config['gamble_simulation']['dynamic']}. Must be 'multiplicative' or 'additive'.")
    # add a wealth column to gamble_data for testing purposes
@@ -125,6 +127,10 @@ def main():
       # as columns in gamble_data or in the cue_args dict) and assemble them
       # the extra_args dict.
       extra_args = {}
+      if cue.id in ["PH-1","PH-3"]:
+        cue_args["tol"] = priority_heuristic_tolerance
+      if cue.id in ["PH-1-NL", "PH-3-NL"]:
+        cue_args["tol"] = priority_heuristic_tolerance_no_loss
       for name in extra_arg_names:
         if name in gamble_row.index:
           extra_args[name] = gamble_row[name]
@@ -194,7 +200,7 @@ def main():
   ax.set_ylabel("TPR")
   ax.set_title("TPR vs FPR for Cues")
   ax.legend()
-  #plt.show()  # This remains the same as it is a global function to display the plot
+  plt.show()  # This remains the same as it is a global function to display the plot
   # save plot to output folder
   fig.savefig(Path(REMOTE_DRIVE) / Path(f"{config['run_id']}/4-visualizations/TPR_vs_FPR_{dynamic}.png"))
 
@@ -217,7 +223,7 @@ def main():
   ax.set_title("Gini Purity vs Non-Random Proportion for Cues")
   ax.legend()
   fig.savefig(Path(REMOTE_DRIVE) / Path(f"{config['run_id']}/4-visualizations/Gini_purity_vs_nonrandom_{dynamic}.png"))
-  #plt.show()  # This remains the same as it is a global function to display the
+  plt.show()  # This remains the same as it is a global function to display the
 
   return 0
 
