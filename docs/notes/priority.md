@@ -126,4 +126,75 @@ After this preprocessing, the heuristic takes the modified gambles and proceeds 
 The idea behind this version is (1) to avoid the 'loss aversion' implied by the assymetric rule for gains and losses, and (2) use the distance between the maximum and minimum (instead of the maximum alone) when evaluating the first cue.
 
 ### Version 3 (ranks)
+
 This version uses the same decision rule as version 1, but gambles are defined by their fractal rank values, $(r)^{i}_j$, instead of the changes in wealth, $(\Delta x)^{i}_j$. Higher rank is better.
+
+## Why and when does it work?
+This section includes some notes on the relationship between the priority heuristic and growth rate optimality.
+
+We generalise the gamble to allow for different probabilities:
+
+$$
+G^{(A)} = \left\{
+\begin{array}{ll}
+m^{A} & \text{with $p$}\\
+M^{A} & \text{with $1-p$}
+\end{array}
+\right.
+$$
+
+$$
+G^{(B)} = \left\{
+\begin{array}{ll}
+m^{B} & \text{with $q$}\\
+M^{B} & \text{with $1-q$}
+\end{array}
+\right.
+$$
+
+where $m$ and $M$ refer to the minimum and maximum change in wealth, respectively. For simplicity, let's further assume that $A$ is the less risky choice, i.e. $m^B < m^A < M^A < M^B$. 
+
+### Additive dynamics
+#### Cue 1
+Under additive dynamic the growth rate optimal choice can be formulated as follows: If
+
+$$
+p m^A + (1-p)M^A \geq q m^B + (1-q)M^B
+$$
+
+then choose $A$.
+
+This condition is equivalent to 
+
+$$
+(p m^A - q m^B) \geq  ((1-q)M^B - (1-p)M^A)
+$$
+
+$$
+m^A - \frac{q}{p} m^B \geq \frac{(1-q)}{p} M^B  - \frac{(1-p)}{p} M^A  \qquad \qquad (1)
+$$
+
+If $p \approx q$ 
+
+$$
+m^A - m^B \geq \frac{(1-p)}{p} (M^B - M^A)  \qqaud \qqaud (2) 
+$$
+
+$$
+m^A - m^B \geq  \frac{(1-p)}{p} (1-t)M^B
+$$
+
+where we are expressing $M^A$ as a fraction of $M^B$ using t: $M^A = tM^B$. This inequality is identical to the priority heuristic with $\frac{(1-p)}{p}(1-t) = \tau$ as we know that $M^B$ is the maximum gains in the gamble pairs.
+
+##### Example
+In the choice between 100 for sure and 1000 with 10 percent, 0 with 90 percent chance, we can calculate the tolerance to be $(1-0.9)/(0.9)*(1-0.1) = 0.1$ which is the tolerance level suggested in the original heuristic.
+
+In ergEx, $p = q = \frac{1}{2}$, which means that the tolerance level depends only on the relationship between $M^A$ and $M^B$, i.e. $\tau = 1-t$ where $M^A = tM^B$.
+
+With the experimental design conditions we know that fractal values are linearily spaced, that $m_B < m_A < M^A < M^B$ and that the fractal values are centered around 0, it is reasonable to assume that $M^A \approx 0.5 M^B$ meaning $\tau \approx 0.5$
+
+#### Cue 2
+Cue 1 will not perform well if $p$ and $q$ are very different. Since the left-hand side of $m^A - \frac{q}{p} m^B$ is approximated by $$If Cue 1 is not present (the difference in minimas are less th), then we continue to Cue 2 which is to Indeed, if $
+
+### Multiplicative dynamics
+??
