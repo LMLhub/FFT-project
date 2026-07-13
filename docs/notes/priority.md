@@ -126,4 +126,82 @@ After this preprocessing, the heuristic takes the modified gambles and proceeds 
 The idea behind this version is (1) to avoid the 'loss aversion' implied by the assymetric rule for gains and losses, and (2) use the distance between the maximum and minimum (instead of the maximum alone) when evaluating the first cue.
 
 ### Version 3 (ranks)
+
 This version uses the same decision rule as version 1, but gambles are defined by their fractal rank values, $(r)^{i}_j$, instead of the changes in wealth, $(\Delta x)^{i}_j$. Higher rank is better.
+
+## Why and when does it work?
+This section includes some notes on the relationship between the priority heuristic and growth rate optimality.
+
+We generalise the gamble to allow for different probabilities:
+
+$$
+G^{(A)} = \left\{
+\begin{array}{ll}
+m^{A} & \text{with $p$}\\
+M^{A} & \text{with $1-p$}
+\end{array}
+\right.
+$$
+
+$$
+G^{(B)} = \left\{
+\begin{array}{ll}
+m^{B} & \text{with $q$}\\
+M^{B} & \text{with $1-q$}
+\end{array}
+\right.
+$$
+
+where $m$ and $M$ refer to the minimum and maximum change in wealth, respectively. For simplicity, let's further assume that $A$ is the less risky choice, i.e. $m^B < m^A < M^A < M^B$. 
+
+### Additive dynamics
+#### Cue 1
+Under additive dynamic the growth rate optimal choice can be formulated as follows: If
+
+$$
+p m^A + (1-p)M^A \geq q m^B + (1-q)M^B
+$$
+
+then choose $A$.
+
+This condition is equivalent to 
+
+$$
+(p m^A - q m^B) \geq  ((1-q)M^B - (1-p)M^A)
+$$
+
+$$
+m^A - \frac{q}{p} m^B \geq \frac{(1-q)}{p} M^B  - \frac{(1-p)}{p} M^A  \qquad \qquad (1)
+$$
+
+If $p \approx q$, we can get an expression that is equivalent to Cue 1 of the priority heuristic:
+
+$$
+m^A - m^B \geq \frac{(1-p)}{p} (M^B - M^A)  \qquad \qquad (2) 
+$$
+
+$$
+m^A - m^B \geq  \frac{(1-p)}{p} (1-t)M^B
+$$
+
+where in the last inequality, we are expressing $M^A$ as a fraction of $M^B$ using $t$: $M^A = tM^B$. This inequality is identical to the priority heuristic with $\frac{(1-p)}{p}(1-t) = \tau$ as we know that $M^B$ is the maximum gains in the gamble pairs.
+
+##### Example
+Example: In the choice between 100 for sure and 1000 with 10 percent, 0 with 90 percent chance, we can calculate the tolerance to be $(1-0.9)/(0.9)*(1-0.1) = 0.1$ which is the tolerance level suggested in the original heuristic.
+
+##### ErgEx
+In the experiment, $p = q = \frac{1}{2}$, which means that the tolerance level depends only on the relationship between $M^A$ and $M^B$, i.e. $\tau = 1-t$ where $M^A = tM^B$.
+
+With the experimental design conditions we know that fractal values are linearily spaced, that $m_B < m_A < M^A < M^B$ and that the fractal values are centered around 0, it is reasonable to assume that $M^A \approx 0.5 M^B$ meaning $\tau \approx 0.5$
+
+#### Cue 2 and 3
+Cue 1 may not perform well if $p$ and $q$ are very different.
+Everything else equal, variations in $p$ and $q$ may lead to 
+
+If $q<p$ then $m^A-m^B < m^A - \frac{q}{p} m^B$. This may imply that we (correcly) reject selecting $A$ (cue value is low) and move on to the next cue. Cue 2, which tells us to look at the difference in probability of the minimum gain ($p-q$). If $p-q >$ tolerance, then choose the gamble with the lowest probability of minimum gain, in this case that is $B$, because $q<p$. Even if the difference is not large enough for Cue 2 to be present, Cue 3 will ensure the selection of B (highest maximum gain).
+
+If $q>p$ then $m^A-m^B > m^A - \frac{q}{p} m^B$ and there is a risk of choosing A when B may be better.
+However, in this case, it is worth thinking of what happens with the right hand side of the ineqality condition that corresponds to cue 2. The tolerance is proportional to $\frac{1-q}{p}$ which declines as $p$ decreases. A 'fixed' tolerance would therefore suggest a too high threshold for cue 1, which again reduces the risk of a false positive. However, Cue 2 would also imply choosing A if present. Only if the difference in probability is not large enough to lead to a decision, Cue 3 will lead to the choice of B.
+
+### Multiplicative dynamics
+The relationship between the two decision rules is more complicated. However it should be clear that due to the linear spacing of time-average growth rates in the multiplicative case, the tolerance for cue 1 should be somewhat higher ($M^B = 0.5 M^A$ is no longer a good assumption, due to exponential growth of changes in wealth).
