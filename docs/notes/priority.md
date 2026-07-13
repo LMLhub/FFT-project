@@ -177,7 +177,7 @@ $$
 If $p \approx q$, we can get an expression that is equivalent to Cue 1 of the priority heuristic:
 
 $$
-m^A - m^B \geq \frac{(1-p)}{p} (M^B - M^A)  \qqaud \qqaud (2) 
+m^A - m^B \geq \frac{(1-p)}{p} (M^B - M^A)  \qquad \qquad (2) 
 $$
 
 $$
@@ -186,21 +186,22 @@ $$
 
 where in the last inequality, we are expressing $M^A$ as a fraction of $M^B$ using $t$: $M^A = tM^B$. This inequality is identical to the priority heuristic with $\frac{(1-p)}{p}(1-t) = \tau$ as we know that $M^B$ is the maximum gains in the gamble pairs.
 
-##### Calculating the tolerance
+##### Example
 Example: In the choice between 100 for sure and 1000 with 10 percent, 0 with 90 percent chance, we can calculate the tolerance to be $(1-0.9)/(0.9)*(1-0.1) = 0.1$ which is the tolerance level suggested in the original heuristic.
 
-ErgEx: In the experiment, $p = q = \frac{1}{2}$, which means that the tolerance level depends only on the relationship between $M^A$ and $M^B$, i.e. $\tau = 1-t$ where $M^A = tM^B$.
+##### ErgEx
+In the experiment, $p = q = \frac{1}{2}$, which means that the tolerance level depends only on the relationship between $M^A$ and $M^B$, i.e. $\tau = 1-t$ where $M^A = tM^B$.
 
 With the experimental design conditions we know that fractal values are linearily spaced, that $m_B < m_A < M^A < M^B$ and that the fractal values are centered around 0, it is reasonable to assume that $M^A \approx 0.5 M^B$ meaning $\tau \approx 0.5$
 
-#### Cue 2
+#### Cue 2 and 3
 Cue 1 may not perform well if $p$ and $q$ are very different.
 Everything else equal, variations in $p$ and $q$ may lead to 
 
 If $q<p$ then $m^A-m^B < m^A - \frac{q}{p} m^B$. This may imply that we (correcly) reject selecting $A$ (cue value is low) and move on to the next cue. Cue 2, which tells us to look at the difference in probability of the minimum gain ($p-q$). If $p-q >$ tolerance, then choose the gamble with the lowest probability of minimum gain, in this case that is $B$, because $q<p$. Even if the difference is not large enough for Cue 2 to be present, Cue 3 will ensure the selection of B (highest maximum gain).
 
 If $q>p$ then $m^A-m^B > m^A - \frac{q}{p} m^B$ and there is a risk of choosing A when B may be better.
-However, in this case, it is worth thinking of what happens with the right hand side of the ineqality condition that corresponds to cue 2. The tolerance is proportional to $\frac{1-q}{p}$ which declines as $p$ decreases. A 'fixed' tolerance would therefore suggest a too high threshold for cue 1, which again reduces the risk of a false positive. However, Cue 2 would also imply choosing A if present...
+However, in this case, it is worth thinking of what happens with the right hand side of the ineqality condition that corresponds to cue 2. The tolerance is proportional to $\frac{1-q}{p}$ which declines as $p$ decreases. A 'fixed' tolerance would therefore suggest a too high threshold for cue 1, which again reduces the risk of a false positive. However, Cue 2 would also imply choosing A if present. Only if the difference in probability is not large enough to lead to a decision, Cue 3 will lead to the choice of B.
 
 ### Multiplicative dynamics
 This is more complicated...
