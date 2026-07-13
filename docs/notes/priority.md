@@ -204,4 +204,4 @@ If $q>p$ then $m^A-m^B > m^A - \frac{q}{p} m^B$ and there is a risk of choosing 
 However, in this case, it is worth thinking of what happens with the right hand side of the ineqality condition that corresponds to cue 2. The tolerance is proportional to $\frac{1-q}{p}$ which declines as $p$ decreases. A 'fixed' tolerance would therefore suggest a too high threshold for cue 1, which again reduces the risk of a false positive. However, Cue 2 would also imply choosing A if present. Only if the difference in probability is not large enough to lead to a decision, Cue 3 will lead to the choice of B.
 
 ### Multiplicative dynamics
-This is more complicated...
+The relationship between the two decision rules is more complicated. However it should be clear that due to the linear spacing of time-average growth rates in the multiplicative case, the tolerance for cue 1 should be somewhat higher ($M^B = 0.5 M^A$ is no longer a good assumption, due to exponential growth of changes in wealth).
