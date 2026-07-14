@@ -133,7 +133,8 @@ class Experiment:
                     initial_wealth: float = None,
                     random_seed: int = None,
                     wealth_update: str = None, #Choose "process" "constant" "data"
-                    save_results: bool = True
+                    save_results: bool = True,
+                    fft_id: str = None #choose an fft to run the experiment for. if none all are chosen
                     ) -> pd.DataFrame:
         """
         For each FFT, walk through every gamble in sequence:
@@ -196,8 +197,14 @@ class Experiment:
         # Initialize a dictionary to collect results for all FFTs and runs.
         collected = {}
 
+        # If fft_id is given, run only for this fft.
+        if fft_id is not None:
+            ffts = [FFT.FFT_registry[fft_id]]
+        else:
+            ffts = self.ffts
+
         #Run each FFT through the gamble data
-        for fft in self.ffts:
+        for fft in ffts:
 
             # Unless data is chosen each FFT starts the run with the same initial wealth.
             if wealth_update != "data":
