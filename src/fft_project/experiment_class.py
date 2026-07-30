@@ -133,7 +133,8 @@ class Experiment:
                     initial_wealth: float = None,
                     random_seed: int = None,
                     wealth_update: str = None, #Choose "process" "constant" "data"
-                    save_results: bool = True
+                    save_results: bool = True,
+                    fft_id: str = None #choose an fft to run the experiment for. if none all are chosen
                     ) -> pd.DataFrame:
         """
         For each FFT, walk through every gamble in sequence:
@@ -196,8 +197,14 @@ class Experiment:
         # Initialize a dictionary to collect results for all FFTs and runs.
         collected = {}
 
+        # If fft_id is given, run only for this fft.
+        if fft_id is not None:
+            ffts = [FFT.FFT_registry[fft_id]]
+        else:
+            ffts = self.ffts
+
         #Run each FFT through the gamble data
-        for fft in self.ffts:
+        for fft in ffts:
 
             # Unless data is chosen each FFT starts the run with the same initial wealth.
             if wealth_update != "data":
@@ -323,7 +330,7 @@ class Experiment:
             return self.results
         return result_df
     
-    def accuracy(self, fft_id: str, reference_id: str, run_no: int = None) -> float:
+    def accuracy(self, fft_id: str, reference_id: str, run_no: int = None, reference_run_no: int = None) -> float:
         # This method calculates the accuracy of the FFT's decisions compared to the
         # optimal decisions of a reference FFT, across one or more runs.
         # Determine which runs to evaluate.
@@ -338,19 +345,21 @@ class Experiment:
         number_of_decisions = 0
 
         for run in runs:
+            if reference_run_no is None:
+                reference_run_no = run #if no referencerun number is provided use the same as the run number
 
             # Check that the decision series exists for the FFT and the reference.
             if (fft_id, run, "selected_side") not in self.results.columns:
                 logger.error(f"Decision column for FFT '{fft_id}' run {run} not found in results.")
                 raise ValueError(f"Decision column for FFT '{fft_id}' run {run} not found in results.")
 
-            if (reference_id, run, "selected_side") not in self.results.columns:
-                logger.error(f"Decision column for reference FFT '{reference_id}' run {run} not found in results.")
-                raise ValueError(f"Decision column for reference FFT '{reference_id}' run {run} not found in results.")
+            if (reference_id, reference_run_no, "selected_side") not in self.results.columns:
+                logger.error(f"Decision column for reference FFT '{reference_id}' run {reference_run_no} not found in results.")
+                raise ValueError(f"Decision column for reference FFT '{reference_id}' run {reference_run_no} not found in results.")
 
             # Pull the decision series for this run.
             fft_decisions       = self.results[(fft_id,       run, "selected_side")]
-            reference_decisions = self.results[(reference_id, run, "selected_side")]
+            reference_decisions = self.results[(reference_id, reference_run_no, "selected_side")]
 
             # Count the number of correct decisions (where the FFT's decision matches the reference)
             # and the total number of decisions.
@@ -472,3 +481,4 @@ class Experiment:
             accuracies.append(accuracy)
 
         return eta_values, accuracies
+    
