@@ -22,23 +22,27 @@ def initialise():
 
 
 def plot_tolerance_sweep(
-    ax,
-    gamble_data,
-    experimental_results,
-    dynamic,
-    tolerances,
-    fft_name,
-    feature_function,
-    final_cue_name,
-    experimental_reference_name,
-    comparison_fft_name="fft_gr",
+    ax,                 # plot axes
+    gamble_data,        # actual gamble data of the experiment
+    experimental_results, # actual choices of the experiment
+    dynamic,            # multiplicative or additive
+    tolerances,         # set of tolerances for which accuracy is evaluated
+    fft_name,           # the name of the different versions of the PH under investigation
+    feature_function,   # the name of the relevant feature function (should match fft_name)
+    final_cue_name,     # cue id of the ph step 3 cue.
+    experimental_reference_name, # name of the column where choices from experiments are stored.
+    comparison_fft_name="fft_gr", # name of the fft that works as the benchmark besides experiments.
 ):
-    """Run one tolerance experiment and draw the results on the given axis."""
+    # This function calculates the accuracy of 
+    # the PH against experimental data and growth rate optimality
+    # for the passed tolerances. It then plots the result. 
+    
+    # Initiate gamble data
     gamble_data = gamble_data.copy()
     gamble_data["dynamic"] = dynamic
     gamble_data["tol"] = 0
 
-    # Cue used for tolerance sweep"
+    # Create cue used for tolerance sweep
     tolerance_cue = Cue(
         id=f"{fft_name}_tolerance_cue",
         name="Step 1 of the priority heuristic with variable tolerance",
@@ -58,7 +62,7 @@ def plot_tolerance_sweep(
         ],
     )
 
-    # FFT using the cue with tolerance sweep and the final PH cue
+    # Create FFT using the cue with tolerance sweep and the final PH cue
     tolerance_fft = FFT(
         id=fft_name,
         name="Priority Heuristic Step 1",
@@ -66,7 +70,7 @@ def plot_tolerance_sweep(
         cues=[tolerance_cue, Cue.cue_registry[final_cue_name]],
     )
 
-    # Experiment used to calculate the accuracy for different tolerances
+    # Create experiment used to calculate the accuracy for different tolerances
     tolerance_experiment = Experiment(
         id=f"exp_{fft_name}",
         name="Priority Heuristic Tolerance Experiment",
@@ -86,13 +90,17 @@ def plot_tolerance_sweep(
         ffts=[FFT.FFT_registry[comparison_fft_name]],
     )
     '''
+    # Run experiment with the reference decision rule (growth rate maximisation)
     comparison_results = tolerance_experiment.run_experiment(
         wealth_update="data", random_seed=42, fft_id=comparison_fft_name
     )
+
+    # Save the experimental results together with the plerane experiment
     tolerance_experiment.results = pd.concat(
         [comparison_results, experimental_results], axis=1
     )
 
+    # Calculate the accuracy of the experimental choices against the reference (growth rate maximisation)
     comparison_accuracy_against_data = tolerance_experiment.accuracy(
         comparison_fft_name, experimental_reference_name, 1, 1
     )
@@ -102,23 +110,26 @@ def plot_tolerance_sweep(
         comparison_accuracy_against_data,
     )
 
-    # Start with the comparison and experimental results, then append one run
-    # of the tolerance FFT for every tolerance value.
-    
-    # tolerance_experiment.results = tolerance_experiment.results.copy()
-
+    # Initiate the multiple runs of the PH with different tolerances
     accuracies = []
     comparison_accuracies = []
     
-    # Reset run number, so it starts from 1.
+    # Reset run number of experiment, so it starts from 1.
     tolerance_experiment.runs = 0
-    
+
+    # Run the experiment for each tolerance in the list of tolerances
     for run_number, tolerance in enumerate(tolerances, start=1):
+
+        # Set tolerance
         gamble_data["tol"] = tolerance
+
+        # Run experiment
         tolerance_experiment.run_experiment(
             wealth_update="data", random_seed=42, fft_id=fft_name
         )
 
+        # Calculate the accuracy of the PH with the current tolerance against the experimental choices
+        # and apend it to the list of accuracies
         accuracies.append(
             tolerance_experiment.accuracy(
                 fft_name,
@@ -127,6 +138,9 @@ def plot_tolerance_sweep(
                 1,
             )
         )
+
+        # Calculate the accuracy of the PH with the current tolerance against growth rate optimality
+        # and apend it to the list of accuracies     
         comparison_accuracies.append(
             tolerance_experiment.accuracy(
                 fft_name,
@@ -136,7 +150,10 @@ def plot_tolerance_sweep(
             )
         )
 
+    # Plot the accuracies
     ax.plot(accuracies, comparison_accuracies, marker="o")
+
+    # Plot the accuracy of growth rate optimality against experimental data (as reference)
     ax.vlines(
         x=comparison_accuracy_against_data,
         ymin=np.min(comparison_accuracies) - 0.1,
@@ -158,13 +175,17 @@ def plot_tolerance_sweep(
         )
 
     ax.set_xlabel("Accuracy against Experimental Data", fontsize=12)
-    ax.set_ylabel(f"Accuracy against {comparison_fft_name}", fontsize=12)
+    ax.set_ylabel(f"Accuracy against {FFT.FFT_registry[comparison_fft_name].name}", fontsize=12)
     ax.set_title(f"{dynamic.capitalize()} dynamics", fontsize=14)
+    ax.legend()
 
     return accuracies, comparison_accuracies
 
 
 def ph_with_different_tolerances():
+    # This function plots the accuracy of the standard PH for a set of tolerances for 
+    # both additive and multiplicative dynamics.
+    
     gamble_data, experimental_results = prepare_experimental_data(
         PROJECT_ROOT / "data/all_active_phase_data.csv"
     )
@@ -203,6 +224,9 @@ def ph_with_different_tolerances():
     fig.savefig("tolerance_priority.png", dpi=300, bbox_inches="tight")
 
 def ph_nl_with_different_tolerances():
+    # This function plots the accuracy of the no loss version of PH for a set of tolerances for 
+    # both additive and multiplicative dynamics.
+    
     gamble_data, experimental_results = prepare_experimental_data(
         PROJECT_ROOT / "data/all_active_phase_data.csv"
     )
