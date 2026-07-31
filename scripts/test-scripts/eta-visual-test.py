@@ -17,10 +17,14 @@ from fft_project.simulation_gamble_data import simulate_gamble_data
 from fft_project.create_cues_ffts import create_cues_ffts
 from fft_project.prepare_experimental_data import prepare_experimental_data
 from fft_project.analysis_compare import (
-    accuracy_against_reference,
-    average_chosen_expected_gamma,
     plot_etas_compare,
     plot_accuracy_gamma_scatter,
+    plot_participant_accuracy_gamma_scatter,
+    plot_participant_accuracy_comparison,
+    participant_rank_statistics,
+    plot_participant_rank_fractions,
+    plot_rank_fraction_accuracy,
+    run_dynamic_experiment,
 )
 
 
@@ -259,71 +263,19 @@ def plot_participant_matches():
         PROJECT_ROOT / "data/all_active_phase_data.csv"
     )
 
-    def run_dynamic_experiment(dynamic, gamble_data, experimental_results):
-        # Select the FFTs and result ID for the current dynamic.
-        suffix = "a" if dynamic == "additive" else "m"
-        fft_names = (FFT_NAMES_A if dynamic == "additive" else FFT_NAMES_M).copy()
-
-        # Run each FFT on the trials completed by the participants.
-        experiment = Experiment(
-            id=f"exp_participant_{suffix}",
-            name="Participant-level comparison",
-            dynamic=dynamic,
-            description="Compare FFT and experimental results by participant.",
-            gamble_data=gamble_data,
-            ffts=[FFT.FFT_registry[name] for name in fft_names],
-        )
-        results = experiment.run_experiment(wealth_update="data", random_seed=42)
-
-        # Combine simulated decisions with observed participant decisions.
-        experiment_id = f"experiment_{suffix}"
-        results = pd.concat([results, experimental_results], axis=1)
-        return results, fft_names + [experiment_id], experiment_id
-
-    def participant_scatter(results, fft_names, experiment_id, reference_id, ax, title):
-        # Get the unique participants from the observed results.
-        participant_ids = results[(experiment_id, 1, "participant_id")]
-        participants = list(pd.unique(participant_ids.dropna()))
-        colours = plt.get_cmap("tab10")
-
-        # Plot one accuracy and growth-rate point per participant and FFT.
-        for fft_number, fft_name in enumerate(fft_names):
-            for participant_number, participant_id in enumerate(participants):
-                participant_rows = participant_ids == participant_id
-                participant_results = results.loc[participant_rows]
-                accuracy = accuracy_against_reference(
-                    participant_results, fft_name, reference_id, runs=1
-                )
-                average_gamma = average_chosen_expected_gamma(
-                    participant_results, fft_name, runs=1
-                )
-                ax.scatter(
-                    accuracy,
-                    average_gamma,
-                    color=colours(fft_number % 10),
-                    marker=".",
-                    alpha=0.75,
-                    label=fft_name if participant_number == 0 else None,
-                )
-
-        # Add subplot labels and one legend entry per FFT.
-        ax.set_xlabel(f"Accuracy against {reference_id}")
-        ax.set_ylabel("Time-average growth rate")
-        ax.set_title(title)
-        ax.legend(
-            loc="upper center",
-            bbox_to_anchor=(0.5, -0.18),
-            fontsize=7,
-            ncol=2,
-        )
-
     # Prepare the additive and multiplicative results once for both figures.
     dynamic_data = [
         ("additive", gamble_data[0], experimental_results[0]),
         ("multiplicative", gamble_data[1], experimental_results[1]),
     ]
     prepared_results = [
-        (dynamic,) + run_dynamic_experiment(dynamic, gambles, results)
+        (dynamic,)
+        + run_dynamic_experiment(
+            dynamic,
+            gambles,
+            results,
+            FFT_NAMES_A if dynamic == "additive" else FFT_NAMES_M,
+        )
         for dynamic, gambles, results in dynamic_data
     ]
 
@@ -338,7 +290,7 @@ def plot_participant_matches():
             axes, prepared_results
         ):
             reference_id = "fft_gr" if reference_kind == "growth_rate" else experiment_id
-            participant_scatter(
+            plot_participant_accuracy_gamma_scatter(
                 results,
                 fft_names,
                 experiment_id,
@@ -357,53 +309,16 @@ def plot_participant_matches():
     for ax, (dynamic, results, fft_names, experiment_id) in zip(
         axes, prepared_results
     ):
-        participant_ids = results[(experiment_id, 1, "participant_id")]
-        participants = list(pd.unique(participant_ids.dropna()))
-        colours = plt.get_cmap("tab10")
-
-        for fft_number, fft_name in enumerate(fft_names):
-            for participant_number, participant_id in enumerate(participants):
-                participant_results = results.loc[
-                    participant_ids == participant_id
-                ]
-                fft_choices = participant_results[(fft_name, 1, "selected_side")]
-                experimental_choices = participant_results[
-                    (experiment_id, 1, "selected_side")
-                ]
-                growth_rate_choices = participant_results[
-                    ("fft_gr", 1, "selected_side")
-                ]
-
-                # Ignore missing choices instead of treating them as disagreements.
-                experimental_rows = fft_choices.notna() & experimental_choices.notna()
-                growth_rate_rows = fft_choices.notna() & growth_rate_choices.notna()
-                experimental_accuracy = (
-                    fft_choices[experimental_rows]
-                    == experimental_choices[experimental_rows]
-                ).mean()
-                growth_rate_accuracy = (
-                    fft_choices[growth_rate_rows]
-                    == growth_rate_choices[growth_rate_rows]
-                ).mean()
-
-                ax.scatter(
-                    experimental_accuracy,
-                    growth_rate_accuracy,
-                    color=colours(fft_number % 10),
-                    marker=".",
-                    alpha=0.75,
-                    label=fft_name if participant_number == 0 else None,
-                )
-
-        # Label each dynamic and show one legend entry per FFT.
-        ax.set_xlabel("Accuracy against experimental data")
-        ax.set_ylabel("Accuracy against time-average growth-rate maximisation")
-        ax.set_title(f"{dynamic.capitalize()} dynamics")
-        ax.legend(
-            loc="upper center",
-            bbox_to_anchor=(0.5, -0.18),
-            fontsize=7,
-            ncol=2,
+        plot_participant_accuracy_comparison(
+            results,
+            fft_names,
+            experiment_id,
+            experiment_id,
+            "fft_gr",
+            ax=ax,
+            title=f"{dynamic.capitalize()} dynamics",
+            x_label="Accuracy against experimental data",
+            y_label="Accuracy against time-average growth-rate maximisation",
         )
 
     # Save and return the additional accuracy-against-accuracy figure.
@@ -415,12 +330,63 @@ def plot_participant_matches():
     )
     figures.append(fig)
 
+    # Count how often each FFT is the most accurate for an individual.
+    # Tied FFTs split that participant's first-place credit equally, keeping
+    # the fractions in each panel summing to one.
+    fig, axes = plt.subplots(1, 2, figsize=(14, 4))
+    rank_accuracy_plot_data = []
+    for ax, (dynamic, results, fft_names, experiment_id) in zip(
+        axes, prepared_results
+    ):
+        candidate_ffts = [name for name in fft_names if name != experiment_id]
+        rank_statistics = participant_rank_statistics(
+            results,
+            candidate_ffts,
+            experiment_id,
+            rank_cutoffs=(1, 2, 3),
+        )
+        rank_accuracy_plot_data.append((dynamic, rank_statistics))
+        plot_participant_rank_fractions(
+            rank_statistics,
+            ax=ax,
+            title=f"{dynamic.capitalize()} dynamics",
+        )
+
+    fig.subplots_adjust(wspace=0.3, bottom=0.35)
+    fig.savefig(
+        "fft_first_place_fraction_by_participant.png",
+        dpi=300,
+        bbox_inches="tight",
+    )
+    figures.append(fig)
+
+    # Relate each plotted rank fraction to the FFT's average accuracy among
+    # the participant contributions included in that fraction.
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    for ax, (dynamic, rank_statistics) in zip(
+        axes, rank_accuracy_plot_data
+    ):
+        plot_rank_fraction_accuracy(
+            rank_statistics,
+            ax=ax,
+            title=f"{dynamic.capitalize()} dynamics",
+            y_limits=(0.55, 0.80),
+        )
+
+    fig.subplots_adjust(wspace=0.3, bottom=0.42)
+    fig.savefig(
+        "fft_rank_fraction_vs_accuracy_by_participant.png",
+        dpi=300,
+        bbox_inches="tight",
+    )
+    figures.append(fig)
+
     return figures
 
 if __name__ == "__main__":
     initialise()
     # test()
-    # plot_gamma_match()
-    # plot_growth_rate_match()
-    # plot_experiment_match()
+    plot_gamma_match()
+    plot_growth_rate_match()
+    plot_experiment_match()
     plot_participant_matches()
