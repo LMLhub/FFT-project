@@ -16,6 +16,7 @@ nav:
       - Reference Paper (PDF): docs/Ergodicity_transformations_predict_human_decision_making_under_risk-3.pdf
   - Notes:
       - Overview: notes/index.md
+      - Accuracy Measures: notes/accuracy.md
       - Greedy FFT Construction Notes: notes/greedy.md
       - Priority heuristic: notes/priority.md
 

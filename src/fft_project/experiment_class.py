@@ -323,9 +323,25 @@ class Experiment:
             return self.results
         return result_df
     
-    def accuracy(self, fft_id: str, reference_id: str, run_no: int = None) -> float:
-        # This method calculates the accuracy of the FFT's decisions compared to the
-        # optimal decisions of a reference FFT, across one or more runs.
+    def accuracy(
+        self,
+        fft_id: str,
+        reference_id: str,
+        run_no: int = None,
+        importance_weighted: bool = False,
+    ) -> float:
+        """Return the decision accuracy of an FFT against a reference FFT.
+
+        When ``importance_weighted`` is false, this is the proportion of
+        matching decisions. When it is true, each decision receives a signed
+        point (+w for a match and -w for a mismatch), where ``w`` is the
+        absolute difference between the two gambles' expected gammas divided
+        by the largest such difference in the experiment. The sum of signed
+        points is divided by the total importance weight and mapped from
+        [-1, 1] to [0, 1]. Thus 0 is complete disagreement, 0.5 is the random
+        baseline, and 1 is complete agreement, directly matching the scale of
+        ordinary accuracy. If every gamble has zero weight, the result is 0.5.
+        """
         # Determine which runs to evaluate.
         if run_no is None:
             runs = range(1, self.runs + 1) #if no run number is provided, evaluate all runs
@@ -334,8 +350,46 @@ class Experiment:
         else:
             runs = run_no
 
-        correct_decisions = 0
-        number_of_decisions = 0
+        correct_decisions: int = 0
+        weighted_points: float = 0.0
+        total_importance_weight: float = 0.0
+        number_of_decisions: int = 0
+
+        if importance_weighted:
+            gamma_columns = [
+                "gamma_left_up",
+                "gamma_left_down",
+                "gamma_right_up",
+                "gamma_right_down",
+            ]
+            missing_columns = [
+                column for column in gamma_columns
+                if column not in self.gamble_data.columns
+            ]
+            if missing_columns:
+                raise ValueError(
+                    "Importance-weighted accuracy requires gamble-data columns: "
+                    + ", ".join(missing_columns)
+                )
+
+            left_expected_gamma = self.gamble_data[
+                ["gamma_left_up", "gamma_left_down"]
+            ].mean(axis=1)
+            right_expected_gamma = self.gamble_data[
+                ["gamma_right_up", "gamma_right_down"]
+            ].mean(axis=1)
+            gamma_distances = (left_expected_gamma - right_expected_gamma).abs()
+            maximum_distance = gamma_distances.max()
+            if pd.isna(maximum_distance):
+                raise ValueError(
+                    "Cannot calculate importance-weighted accuracy for empty gamble data."
+                )
+            if maximum_distance == 0:
+                importance_weights = pd.Series(
+                    0.0, index=self.gamble_data.index, dtype=float
+                )
+            else:
+                importance_weights = gamma_distances / maximum_distance
 
         for run in runs:
 
@@ -352,12 +406,31 @@ class Experiment:
             fft_decisions       = self.results[(fft_id,       run, "selected_side")]
             reference_decisions = self.results[(reference_id, run, "selected_side")]
 
-            # Count the number of correct decisions (where the FFT's decision matches the reference)
-            # and the total number of decisions.
-            correct_decisions   += (fft_decisions == reference_decisions).sum()
+            decisions_match = fft_decisions == reference_decisions
+            if importance_weighted:
+                run_weights = importance_weights.reindex(fft_decisions.index)
+                if run_weights.isna().any():
+                    raise ValueError(
+                        "Gamble data and result rows must have matching indices for "
+                        "importance-weighted accuracy."
+                    )
+                signed_matches = np.where(decisions_match, 1.0, -1.0)
+                weighted_points += (signed_matches * run_weights).sum()
+                total_importance_weight += run_weights.sum()
+            else:
+                correct_decisions += decisions_match.sum()
             number_of_decisions += len(fft_decisions)
-        
-        # Return accuracy as the proportion of decisions that match the reference.
+
+        if number_of_decisions == 0:
+            raise ValueError("Cannot calculate accuracy without decisions.")
+
+        if importance_weighted:
+            # Normalizing by the weight sum keeps this score comparable to
+            # ordinary accuracy: perfect agreement is 1 even when w < 1.
+            if total_importance_weight == 0:
+                return 0.5
+            return 0.5 * (1.0 + weighted_points / total_importance_weight)
+
         return correct_decisions / number_of_decisions
     
     def frugality(self, fft_id: str, run_no: int = None) -> float:
