@@ -270,6 +270,53 @@ def etas_compare(gamble_data, results, etas, fft_id, dynamic, runs=None, random_
     return etas, accuracies
 
 
+def etas_compare_by_participant(
+    gamble_data,
+    results,
+    etas,
+    fft_id,
+    dynamic,
+    runs=None,
+    random_seed=None,
+):
+    """Return mean, 25th-, and 75th-percentile eta accuracy by participant."""
+    if "participant_id" not in gamble_data.columns:
+        raise ValueError(
+            "gamble_data must contain 'participant_id' for participant-level accuracy."
+        )
+
+    if runs is None:
+        runs = _latest_run(results, fft_id)
+
+    choices = _result_series(results, fft_id, runs, "selected_side")
+    wealth = _result_series(results, fft_id, runs, "wealth_pre")
+    participant_ids = gamble_data["participant_id"]
+    participants = participant_ids.dropna().unique()
+    if len(participants) == 0:
+        raise ValueError("Cannot calculate participant accuracy without participant IDs.")
+
+    participant_accuracies = []
+    for participant_id in participants:
+        participant_mask = participant_ids == participant_id
+        _, accuracies = match_etas_data(
+            gamble_data.loc[participant_mask],
+            choices.loc[participant_mask],
+            wealth.loc[participant_mask],
+            etas,
+            dynamic,
+            random_seed,
+        )
+        participant_accuracies.append(accuracies)
+
+    participant_accuracies = np.asarray(participant_accuracies, dtype=float)
+    return (
+        list(etas),
+        participant_accuracies.mean(axis=0),
+        np.percentile(participant_accuracies, 25, axis=0),
+        np.percentile(participant_accuracies, 75, axis=0),
+    )
+
+
 def eta_match(gamble_data, results, fft_id, runs=None, eta_values=None, dynamic="additive", random_seed=None):
     """
     Backwards-compatible wrapper for comparing one FFT to a list of eta values.
@@ -300,7 +347,10 @@ def plot_etas_compare(
     title=None,
 ):
     """
-    Plot eta-match accuracies for a list of FFT ids.
+    Plot mean participant eta-match accuracies for a list of FFT ids.
+
+    The shaded interval spans the 25th to 75th percentile of participant
+    accuracies at each eta value.
 
     This is the reusable version of each subplot loop in eta-visual-test.py.
     Pass an existing matplotlib axis to draw into a subplot, or omit ax to create
@@ -315,14 +365,16 @@ def plot_etas_compare(
         fft_registry = yaml.safe_load(f)
     
     for fft_name in fft_names:
-        etas_result, fft_accuracy = etas_compare(
-            gamble_data,
-            results,
-            etas,
-            fft_name,
-            dynamic,
-            runs=runs,
-            random_seed=random_seed,
+        etas_result, fft_accuracy, lower_accuracy, upper_accuracy = (
+            etas_compare_by_participant(
+                gamble_data,
+                results,
+                etas,
+                fft_name,
+                dynamic,
+                runs=runs,
+                random_seed=random_seed,
+            )
         )
         
         if "experiment" in fft_name:
@@ -332,7 +384,20 @@ def plot_etas_compare(
             plot_name = fft_registry[fft_name]["name"]
             style = "-"
             
-        ax.plot(etas_result, fft_accuracy, label=plot_name, linestyle = style)
+        line, = ax.plot(
+            etas_result,
+            fft_accuracy,
+            label=plot_name,
+            linestyle=style,
+        )
+        ax.fill_between(
+            etas_result,
+            lower_accuracy,
+            upper_accuracy,
+            color=line.get_color(),
+            alpha=0.15,
+            linewidth=0,
+        )
 
     ax.legend(
         loc="upper center",
@@ -340,7 +405,7 @@ def plot_etas_compare(
         fontsize=8,
     )
     ax.set_xlabel("Eta")
-    ax.set_ylabel("Accuracy")
+    ax.set_ylabel("Mean participant accuracy")
 
     ax.set_title(title or f"{dynamic.capitalize()} dynamics")
 
