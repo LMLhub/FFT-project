@@ -1,14 +1,7 @@
-# Estimate the risk aversion parameter eta from the experimental choice data,
-# using the simple maximum likelihood / MAP method (no MCMC).
-#
-# It prints:
-#   1. a pooled eta per condition (all choices treated as one participant), and
-#   2. a per-participant eta for the additive and multiplicative conditions,
-#      with a short summary.
-#
-# Sanity check: the mean/median eta should be markedly higher under the
-# multiplicative condition than under the additive one -- the central finding
-# of the paper.
+# estimates eta from the real experimental choices with the ML / MAP method, no MCMC
+# prints a pooled eta per condition and a per-participant eta for both conditions
+# sanity check: eta should be clearly higher in the multiplicative condition than in
+# the additive one, which is the central finding of the paper
 import sys
 from pathlib import Path
 
@@ -25,8 +18,7 @@ SELECTED_SIDE = ("experiment_a", 1, "selected_side")  # column label pattern
 
 
 def _choices_and_wealth(gamble_data, results, fft_id):
-    # Pull the observed choices and pre-choice wealth for a condition, aligned
-    # with the gamble_data rows.
+    # the observed choices and the wealth before each choice, lined up with gamble_data
     choices = results[(fft_id, 1, "selected_side")].to_numpy()
     wealth = gamble_data["wealth"].to_numpy(dtype=float)
     return choices, wealth
@@ -44,7 +36,7 @@ def main():
         ("multiplicative", gamble_mul, results_mul, "experiment_m"),
     ]
 
-    # 1. Pooled estimate per condition.
+    # pooled estimate, all choices treated as one big participant
     print("=" * 60)
     print("Pooled estimate (all choices together)")
     print("=" * 60)
@@ -57,7 +49,7 @@ def main():
             f"n = {fit['n_trials']}"
         )
 
-    # 2. Per-participant estimates.
+    # per-participant estimate
     print()
     print("=" * 60)
     print("Per-participant estimate")
@@ -80,7 +72,7 @@ def main():
             f"participants = {len(df)}"
         )
 
-    # 3. Compare the two conditions per participant.
+    # compare the two conditions for each participant
     merged = per_participant["additive"].merge(
         per_participant["multiplicative"],
         on="participant_id",

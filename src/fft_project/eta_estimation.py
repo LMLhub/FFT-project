@@ -1,10 +1,9 @@
-# This module estimates the risk aversion parameter eta from observed choices.
-#
-# It implements the simple maximum likelihood / MAP version of the model
-# described in docs/docs/eta-estimation.md: the probability of choosing the
-# left gamble is a logistic function of the difference in expected isoelastic
-# utility between the two gambles, and we find the (eta, beta) pair that best
-# explains the observed choices with a numerical optimiser (no MCMC).
+# estimates the risk aversion parameter eta from a person's observed choices
+# eta says how risk-averse someone is, a higher eta means more cautious
+# the chance of choosing the left gamble is a logistic function of how much more
+# attractive the left gamble is than the right one
+# the best (eta, beta) pair is found with a numerical optimiser, no MCMC
+# the full method is described in docs/docs/eta-estimation.md
 import logging
 import numpy as np
 from scipy.optimize import minimize
@@ -18,9 +17,9 @@ GAMBLE_COLUMNS = [
     "gamma_right_down",
 ]
 
-# Weakly informative priors used for the MAP estimate. They only rule out
-# absurd values; within a broad range the data decides. eta is normal, and
-# log(beta) is normal (so beta itself is log-normal), mirroring the paper.
+# weak prior beliefs for the MAP estimate, they only rule out absurd values
+# eta follows a normal distribution and log(beta) follows a normal distribution
+# so beta itself is log-normal, matching the paper
 DEFAULT_PRIORS = {
     "eta_mean": 0.0,
     "eta_sd": 2.5,
@@ -28,36 +27,38 @@ DEFAULT_PRIORS = {
     "log_beta_sd": 1.5,
 }
 
-# Bounds keep the optimiser in a sensible region and prevent overflow in
-# exp(log_beta) for near-separable data.
-_BOUNDS = [(-4.0, 6.0), (-6.0, 8.0)]  # (eta, log_beta)
+# keeps the optimiser in a sensible range for eta and log_beta
+# also avoids overflow when turning log_beta back into beta
+_BOUNDS = [(-4.0, 6.0), (-6.0, 8.0)]
 
 
 def _mean_isoelastic_utility(up, down, wealth, dynamic, eta):
-    # Mean isoelastic utility of a single gamble (two equally likely outcomes).
-    # Vectorised over trials; identical in meaning to
-    # cue_features.expected_isoelastic_utility.
+    # average attractiveness (utility) of one gamble with two equally likely outcomes
+    # how much a given amount of money is worth to the person depends on eta
+    # same meaning as cue_features.expected_isoelastic_utility
     if dynamic == "multiplicative":
-        x1 = np.exp(up) * wealth
-        x2 = np.exp(down) * wealth
+        outcome_up = np.exp(up) * wealth
+        outcome_down = np.exp(down) * wealth
     elif dynamic == "additive":
-        x1 = up + wealth
-        x2 = down + wealth
+        outcome_up = up + wealth
+        outcome_down = down + wealth
     else:
         raise ValueError("Invalid dynamic. Must be 'multiplicative' or 'additive'.")
 
-    tol = 1e-15
-    if abs(eta - 1) < tol:
-        return (np.log(x1) + np.log(x2)) / 2
-    if abs(eta) < tol:
-        return (x1 + x2) / 2
-    return (np.power(x1, 1 - eta) + np.power(x2, 1 - eta)) / (2 * (1 - eta))
+    # eta close to 1 and eta close to 0 need their own formulas, the general one
+    # would divide by zero there
+    tolerance = 1e-15
+    if abs(eta - 1) < tolerance:
+        return (np.log(outcome_up) + np.log(outcome_down)) / 2
+    if abs(eta) < tolerance:
+        return (outcome_up + outcome_down) / 2
+    return (np.power(outcome_up, 1 - eta) + np.power(outcome_down, 1 - eta)) / (2 * (1 - eta))
 
 
 def _safe_wealth(gamble_data, wealth, dynamic):
-    # Under additive dynamics an outcome can push wealth to zero or below,
-    # which makes the isoelastic utility undefined. Mirror the safeguard in
-    # analysis_compare.eta_choice: reset such trials to a wealth of 1000.
+    # in the additive experiment a bad outcome can push wealth to zero or below
+    # the utility formula is undefined there, so those trials get wealth reset to 1000
+    # same safeguard as analysis_compare.eta_choice
     wealth = np.asarray(wealth, dtype=float).copy()
     if dynamic == "additive":
         min_outcome = gamble_data[GAMBLE_COLUMNS].to_numpy().min(axis=1)
@@ -72,26 +73,29 @@ def _validate_gamble_data(gamble_data):
         raise ValueError(f"Gamble data is missing required columns: {missing}")
 
 
-def _neg_log_posterior(params, delta_f_of_eta, y, priors):
-    # Negative log-posterior (or negative log-likelihood if priors is None).
-    # params = (eta, log_beta). We optimise log_beta so beta stays positive.
+def _neg_log_posterior(params, utility_gap_of_eta, choices_left, priors):
+    # how badly a given (eta, log_beta) explains the choices, smaller is better
+    # returns the negative log-posterior, or the negative log-likelihood if priors is None
+    # log_beta is optimised instead of beta so beta always stays positive
     eta, log_beta = params
     beta = np.exp(log_beta)
 
-    z = beta * delta_f_of_eta(eta)  # = beta * Delta<delta f_eta>
+    # how strongly the model leans towards left on each trial
+    decision_value = beta * utility_gap_of_eta(eta)
 
-    # Numerically stable Bernoulli log-likelihood:
-    #   log theta       = -log(1 + e^-z) = -logaddexp(0, -z)
-    #   log(1 - theta)  = -log(1 + e^+z) = -logaddexp(0, +z)
-    log_lik = np.sum(
-        y * (-np.logaddexp(0.0, -z)) + (1.0 - y) * (-np.logaddexp(0.0, z))
+    # log-likelihood of the observed choices, written in a numerically stable way
+    # so very confident predictions do not overflow
+    log_likelihood = np.sum(
+        choices_left * (-np.logaddexp(0.0, -decision_value))
+        + (1.0 - choices_left) * (-np.logaddexp(0.0, decision_value))
     )
 
     if priors is not None:
-        log_lik += -0.5 * ((eta - priors["eta_mean"]) / priors["eta_sd"]) ** 2
-        log_lik += -0.5 * ((log_beta - priors["log_beta_mean"]) / priors["log_beta_sd"]) ** 2
+        # add the prior beliefs on eta and log_beta for the MAP estimate
+        log_likelihood += -0.5 * ((eta - priors["eta_mean"]) / priors["eta_sd"]) ** 2
+        log_likelihood += -0.5 * ((log_beta - priors["log_beta_mean"]) / priors["log_beta_sd"]) ** 2
 
-    return -log_lik
+    return -log_likelihood
 
 
 def estimate_eta(
@@ -105,7 +109,7 @@ def estimate_eta(
     random_seed=0,
 ):
     """
-    Estimate (eta, beta) for one set of choices by maximising the log-likelihood.
+    Estimate (eta, beta) for one set of choices by fitting the logistic choice model.
 
     Parameters
     ----------
@@ -124,26 +128,27 @@ def estimate_eta(
     """
     _validate_gamble_data(gamble_data)
 
-    y = (np.asarray(choices) == "left").astype(float)
-    if len(y) != len(gamble_data) or len(y) != len(wealth):
+    # 1.0 where the person chose left, 0.0 where they chose right
+    choices_left = (np.asarray(choices) == "left").astype(float)
+    if len(choices_left) != len(gamble_data) or len(choices_left) != len(wealth):
         raise ValueError("gamble_data, choices and wealth must have the same length.")
-    if len(y) == 0:
+    if len(choices_left) == 0:
         raise ValueError("Cannot estimate eta from empty data.")
 
-    w = _safe_wealth(gamble_data, wealth, dynamic)
+    safe_wealth = _safe_wealth(gamble_data, wealth, dynamic)
 
-    # Precompute the gamma arrays once; only eta changes during optimisation.
-    l_up = gamble_data["gamma_left_up"].to_numpy(dtype=float)
-    l_down = gamble_data["gamma_left_down"].to_numpy(dtype=float)
-    r_up = gamble_data["gamma_right_up"].to_numpy(dtype=float)
-    r_down = gamble_data["gamma_right_down"].to_numpy(dtype=float)
+    # pull the four gamma columns once, only eta changes during optimisation
+    left_up = gamble_data["gamma_left_up"].to_numpy(dtype=float)
+    left_down = gamble_data["gamma_left_down"].to_numpy(dtype=float)
+    right_up = gamble_data["gamma_right_up"].to_numpy(dtype=float)
+    right_down = gamble_data["gamma_right_down"].to_numpy(dtype=float)
 
-    def delta_f_of_eta(eta):
-        # Delta<delta f_eta> = <f_eta(left)> - <f_eta(right)>.
-        # The f_eta(current wealth) term cancels between left and right.
+    def utility_gap(eta):
+        # how much more attractive the left gamble is than the right one
+        # the term for current wealth cancels out between left and right
         return (
-            _mean_isoelastic_utility(l_up, l_down, w, dynamic, eta)
-            - _mean_isoelastic_utility(r_up, r_down, w, dynamic, eta)
+            _mean_isoelastic_utility(left_up, left_down, safe_wealth, dynamic, eta)
+            - _mean_isoelastic_utility(right_up, right_down, safe_wealth, dynamic, eta)
         )
 
     if method == "map":
@@ -153,33 +158,35 @@ def estimate_eta(
     else:
         raise ValueError("method must be 'map' or 'mle'.")
 
-    rng = np.random.default_rng(random_seed)
-    starts = [np.array([0.5, 0.0])]
+    # several starting points so the optimiser does not get stuck in a poor spot
+    random_generator = np.random.default_rng(random_seed)
+    start_points = [np.array([0.5, 0.0])]
     for _ in range(max(0, n_starts - 1)):
-        starts.append(np.array([rng.uniform(-2.0, 3.0), rng.uniform(-2.0, 2.0)]))
+        start_points.append(np.array([random_generator.uniform(-2.0, 3.0), random_generator.uniform(-2.0, 2.0)]))
 
-    best = None
-    for x0 in starts:
-        res = minimize(
+    # keep the best fit across all starting points
+    best_result = None
+    for start_point in start_points:
+        result = minimize(
             _neg_log_posterior,
-            x0,
-            args=(delta_f_of_eta, y, used_priors),
+            start_point,
+            args=(utility_gap, choices_left, used_priors),
             method="Nelder-Mead",
             bounds=_BOUNDS,
         )
-        if best is None or res.fun < best.fun:
-            best = res
+        if best_result is None or result.fun < best_result.fun:
+            best_result = result
 
-    eta_hat, log_beta_hat = best.x
-    # Report the plain log-likelihood (priors excluded) for comparability.
-    loglik = -_neg_log_posterior(best.x, delta_f_of_eta, y, None)
+    estimated_eta, estimated_log_beta = best_result.x
+    # report the plain log-likelihood without the priors, so fits are comparable
+    loglik = -_neg_log_posterior(best_result.x, utility_gap, choices_left, None)
 
     return {
-        "eta": float(eta_hat),
-        "beta": float(np.exp(log_beta_hat)),
-        "n_trials": int(len(y)),
+        "eta": float(estimated_eta),
+        "beta": float(np.exp(estimated_log_beta)),
+        "n_trials": int(len(choices_left)),
         "loglik": float(loglik),
-        "success": bool(best.success),
+        "success": bool(best_result.success),
         "method": method,
     }
 
@@ -208,21 +215,21 @@ def estimate_eta_per_participant(
     wealth = np.asarray(wealth, dtype=float)
     gamble_data = gamble_data.reset_index(drop=True)
 
-    rows = []
-    for pid in pd.unique(participant_ids):
-        mask = participant_ids == pid
+    results = []
+    for participant_id in pd.unique(participant_ids):
+        belongs_to_participant = participant_ids == participant_id
         result = estimate_eta(
-            gamble_data.loc[mask],
-            choices[mask],
-            wealth[mask],
+            gamble_data.loc[belongs_to_participant],
+            choices[belongs_to_participant],
+            wealth[belongs_to_participant],
             dynamic,
             method=method,
             priors=priors,
             n_starts=n_starts,
             random_seed=random_seed,
         )
-        result["participant_id"] = pid
-        rows.append(result)
+        result["participant_id"] = participant_id
+        results.append(result)
 
     columns = ["participant_id", "eta", "beta", "n_trials", "loglik", "success"]
-    return pd.DataFrame(rows)[columns]
+    return pd.DataFrame(results)[columns]
