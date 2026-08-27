@@ -7,8 +7,9 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from fft_project.cue_class import Cue
 from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility, signs, prefer_best_n_ranks, priority_step1, priority_step3, priority_step1_no_loss, priority_step3_no_loss, growth_rate_min
-from fft_project.cue_features import avoid_worst_available, prefer_best_available, max_sum_ranks
+from fft_project.cue_features import avoid_worst_available, prefer_best_available, max_sum_ranks, avoid_worst_or_prefer_best
 from fft_project.cue_features import fractal_signs, priority_step1, priority_step3, priority_step1_no_loss, priority_step3_no_loss
+from fft_project.cue_features import ph_simple_1, ph_simple_3
 from fft_project.config import read_config_file
 import pandas as pd
 import logging
@@ -404,6 +405,42 @@ def create_cues():
                          "gamma_right_up", "gamma_right_down"],
     )
 
+    Cue(
+            id          = "AW-PB",
+            name        = f"Avoid worst or prefer best",
+            description = f"Checks whether the best or the worst fractal is present. Choses only if the best is present but not the worst or vice versa",
+            feature     = avoid_worst_or_prefer_best,
+            type        = "boolean",
+            threshold   = 0,
+            params      = {},
+            required_args = ["gamma_left_up", "gamma_left_down",
+                             "gamma_right_up", "gamma_right_down", "fractal_values"]
+        )
+
+    Cue(
+        id          = "ph-simple-1",
+        name        = f"simplified ph cue 1",
+        description = f"Checks if the difference in the rank of the minimum gains is greater than the threshold.",
+        feature     = ph_simple_1,
+        type        = "boolean",
+        threshold   = 0,
+        params      = {},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                                 "gamma_right_up", "gamma_right_down", "fractal_values", "tol"]
+        )
+
+    Cue(
+        id          = "ph-simple-3",
+        name        = f"simplified ph cue 3",
+        description = f"returns the gamble with the highest maximum gain.",
+        feature     = ph_simple_3,
+        type        = "boolean",
+        threshold   = 0,
+        params      = {},
+        required_args = ["gamma_left_up", "gamma_left_down",
+                                "gamma_right_up", "gamma_right_down"]
+        )
+
 def create_ffts():
     # This script creates FFTs and saves the FFT registry to a yaml file. It can be run once and then deleted.
     FFT(id="fft_aw_1_a",
@@ -516,7 +553,16 @@ def create_ffts():
         description="This fft chooses the opposite of the growth rate maximisation",
         cues=[ Cue.cue_registry["gr_min"]])
 
+    FFT(id="fft_awpb",
+                  name="Avoid worst or prefer best",
+                  description="This FFT uses the avoid worst or prefer best cue, otherwise random.",
+                  cues=[Cue.cue_registry["AW-PB"]])
 
+    FFT(id="fft-ph-simple",
+                  name="Simplified priority heuristic",
+                  description="An example FFT with simplified priority heuristic.",
+                  cues=[Cue.cue_registry["ph-simple-1"], Cue.cue_registry["ph-simple-3"]])
+            
 
 def create_cues_ffts(filepath=None):
     create_cues()

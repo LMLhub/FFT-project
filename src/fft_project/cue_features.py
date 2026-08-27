@@ -136,7 +136,6 @@ def priority_step1(g1_up, g1_down, g2_up, g2_down, tol, dynamic):
     # is greater than the tolerance multiplied by the maximimum gain of gamble 2.
     # Returns true if the minimum gain is above the the threshold, indicating preference of the less risky choice of g1.
 
-
     if dynamic == "multiplicative":
         g1_up = np.exp(g1_up)-1
         g1_down = np.exp(g1_down)-1
@@ -166,12 +165,7 @@ def priority_step1(g1_up, g1_down, g2_up, g2_down, tol, dynamic):
         g2_max = np.max([g2_up, g2_down])
 
     min_difference = g1_min - g2_min
-    #print("reversed: ", reversed)
-    #print("g1_up: ", g1_up, " g1_down: ", g1_down, " g2_up: ", g2_up, " g2_down: ", g2_down)
-    #print("minimum difference: ", min_difference, " g1_min: ", g1_min, " g2_min: ", g2_min)
-    #print("tolerance * maximum gain: ", tol * np.max([np.abs(g1_max), np.abs(g2_max)]))
-
-
+    
     #If the minimum gain/loss differ by tol (or more) of the maximum gain/loss
     if np.abs(min_difference) > tol * np.max([g1_max, g2_max]):#it seems like the sign should change.
 
@@ -279,3 +273,57 @@ def priority_step3_no_loss(g1_up, g1_down, g2_up, g2_down, dynamic):
 
     return priority_step3(g1_up, g1_down, g2_up, g2_down, "additive")
 
+def avoid_worst_or_prefer_best(g1_up, g1_down, g2_up, g2_down, fractal_values):
+    # If gamble 1 contains the worst fractal value, but not the best, it returns -1.
+    # If gamble 1 contains the best fractal value, but not the worst, it returns +1.
+    # If gamble 1 does not contain the worst or best fractal value or both, it returns 0.
+
+    worst_value = min(fractal_values)
+    best_value = max(fractal_values)
+    count = 0
+
+    if g1_up == worst_value or g1_down == worst_value:
+        count = count-1
+
+    if g1_up == best_value or g1_down == best_value:
+        count = count+1
+
+    return count
+
+def ph_simple_1(g1_up, g1_down, g2_up, g2_down, fractal_values, tol = 4):
+    #check that all fractals can be ranked
+    for g in [g1_up, g1_down, g2_up, g2_down]:
+        if g not in fractal_values:
+            logger.error(f"Gamble value {g} is not in fractal_values.")
+            raise ValueError(f"Gamble value {g} is not in fractal_values.")
+
+    #calculate the ranks of the fractal
+    g1_up_rank = sorted(fractal_values).index(g1_up)
+    g1_down_rank = sorted(fractal_values).index(g1_down)
+    g2_up_rank = sorted(fractal_values).index(g2_up)
+    g2_down_rank = sorted(fractal_values).index(g2_down)
+
+    #calculate the minimum gain
+    g1_min = np.min([g1_up_rank, g1_down_rank])
+    g2_min = np.min([g2_up_rank, g2_down_rank])
+
+    min_difference = g1_min - g2_min
+        
+    #if the difference in minimum gain is greater than tol, choose the gamble with the highest minimum gain
+    if np.abs(min_difference) >= tol:
+        if g1_min > g2_min:
+            return True
+        else:
+            return False
+
+    return False
+
+def ph_simple_3(g1_up, g1_down, g2_up, g2_down):
+    #return the gamble with the highest maximum gain
+    g1_max = np.max([g1_up, g1_down])
+    g2_max = np.max([g2_up, g2_down])
+
+    if g1_max > g2_max:
+        return True
+    else:
+        return False
