@@ -273,22 +273,16 @@ def priority_step3_no_loss(g1_up, g1_down, g2_up, g2_down, dynamic):
 
     return priority_step3(g1_up, g1_down, g2_up, g2_down, "additive")
 
-def avoid_worst_or_prefer_best(g1_up, g1_down, g2_up, g2_down, fractal_values):
-    # If gamble 1 contains the worst fractal value, but not the best, it returns -1.
-    # If gamble 1 contains the best fractal value, but not the worst, it returns +1.
-    # If gamble 1 does not contain the worst or best fractal value or both, it returns 0.
-
-    worst_value = min(fractal_values)
-    best_value = max(fractal_values)
-    count = 0
-
-    if g1_up == worst_value or g1_down == worst_value:
-        count = count-1
-
-    if g1_up == best_value or g1_down == best_value:
-        count = count+1
-
-    return count
+def avoid_worst_or_prefer_best(g1_up, g1_down, g2_up, g2_down, random_choice, fractal_values):
+    # Chooses randomly whether to apply the avoid worst or prefer best heuristic.
+    # random_choice is a binary variable that determines which heuristic to apply.
+    if random_choice not in [0, 1]:
+        logger.error(f"random_choice must be 0 or 1, but got {random_choice}.")
+        raise ValueError(f"random_choice must be 0 or 1, but got {random_choice}.")
+    if random_choice == 0:
+        return avoid_worst_n_ranks(g1_up, g1_down, g2_up, g2_down, 1, fractal_values)
+    else:
+        return prefer_best_n_ranks(g1_up, g1_down, g2_up, g2_down, 1, fractal_values)
 
 def ph_simple_1(g1_up, g1_down, g2_up, g2_down, fractal_values, tol = 4):
     #check that all fractals can be ranked
@@ -327,3 +321,111 @@ def ph_simple_3(g1_up, g1_down, g2_up, g2_down):
         return True
     else:
         return False
+
+def ph_rank_1(g1_up, g1_down, g2_up, g2_down, fractal_values, tol_relative = 2):
+    # This function is to be used for the first step of the priority heuristics
+    # as suggested by the 2008 paper. It is asymmetrical, which means that losses and gains
+    # are treated differently (risk seeking for losses and risk aversion for gains).
+    # Since the paper does not specify what to do for mixed gambles (with both gains and losses) we
+    # switch based on the average outcome. If the choice is deemed a 'loss' problem, we change sign of all values.
+
+    # Checks if the difference between the minimum of gamble 1 and minimum of gamble 2
+    # is greater than the tolerance multiplied by the maximimum gain of gamble 2.
+    # Returns true if the minimum gain is above the the threshold, indicating preference of the less risky choice of g1.
+
+    #Check that all fractals can be ranked
+    for g in [g1_up, g1_down, g2_up, g2_down]:
+        if g not in fractal_values:
+            logger.error(f"Gamble value {g} is not in fractal_values.")
+            raise ValueError(f"Gamble value {g} is not in fractal_values.")
+
+    #calculate the ranks of the fractal
+    g1_up_rank = sorted(fractal_values).index(g1_up)
+    g1_down_rank = sorted(fractal_values).index(g1_down)
+    g2_up_rank = sorted(fractal_values).index(g2_up)
+    g2_down_rank = sorted(fractal_values).index(g2_down)
+
+    # This variable is used to keep track of whether the signs of the gamble values have been reversed.
+    reversed = False
+
+    #Check if the average outcome is negative, if so, switch signs of all values
+    if (g1_up_rank + g1_down_rank + g2_up_rank + g2_down_rank)/4 < 3.5:
+        reversed = True
+
+    if reversed:
+        #calculate the minimum loss
+        g1_min = np.min([-g1_up_rank, -g1_down_rank])
+        g2_min = np.min([-g2_up_rank, -g2_down_rank])
+        #calculate the maximum loss
+        g1_max = np.max([-g1_up_rank, -g1_down_rank])
+        g2_max = np.max([-g2_up_rank, -g2_down_rank])
+    else:
+        #calculate the minimum gain
+        g1_min = np.min([g1_up_rank, g1_down_rank])
+        g2_min = np.min([g2_up_rank, g2_down_rank])
+        #calculate the maximum gain
+        g1_max = np.max([g1_up_rank, g1_down_rank])
+        g2_max = np.max([g2_up_rank, g2_down_rank])
+
+    min_difference = g1_min - g2_min
+    
+    #If the minimum gain/loss differ by tol (or more) of the maximum gain/loss
+    if np.abs(min_difference) > tol_relative:
+        if reversed:
+            # then choose the gamble with the lowest mimimum loss
+            if g1_min < g2_min:
+                return True
+
+        if not reversed:
+            # then choose the gamble with the highest minumum gain
+            if g1_min > g2_min:
+                return True
+
+    return False
+
+def ph_rank_3(g1_up, g1_down, g2_up, g2_down, fractal_values):
+    # This is the feature function for the rank-based priority heuristic.
+    # It is similar to ph_1, but it uses rank based values.
+    
+    # check that all fractals can be ranked
+    for g in [g1_up, g1_down, g2_up, g2_down]:
+        if g not in fractal_values:
+            logger.error(f"Gamble value {g} is not in fractal_values.")
+            raise ValueError(f"Gamble value {g} is not in fractal_values.")
+
+    #calculate the ranks of the fractal
+    g1_up_rank = sorted(fractal_values).index(g1_up)
+    g1_down_rank = sorted(fractal_values).index(g1_down)
+    g2_up_rank = sorted(fractal_values).index(g2_up)
+    g2_down_rank = sorted(fractal_values).index(g2_down)
+
+    reversed = False
+
+    # determine if the average rank is less than half of the number of fractals,
+    #Check if the average outcome is negative, if so, switch signs of all values
+    if (g1_up_rank + g1_down_rank + g2_up_rank + g2_down_rank)/4 < 0.5*len(fractal_values):
+        reversed = True
+
+    if reversed:
+        #calculate the maximum loss in terms of rank
+        g1_max = np.max([-g1_up_rank, -g1_down_rank])
+        g2_max = np.max([-g2_up_rank, -g2_down_rank])
+
+    else:
+        #calculate the maximum gain in terms of rank
+        g1_max = np.max([g1_up_rank, g1_down_rank])
+        g2_max = np.max([g2_up_rank, g2_down_rank])
+
+    if reversed:
+        #pick the one with the lowest maximum loss:
+        if g1_max < g2_max:
+            return True
+
+    if not reversed:
+        #pick the one with the highest maximum gain:
+        if g1_max > g2_max:
+            return True
+
+    return False
+
+
