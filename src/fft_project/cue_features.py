@@ -429,3 +429,21 @@ def ph_rank_3(g1_up, g1_down, g2_up, g2_down, fractal_values):
     return False
 
 
+def sum_of_ranks(g1_up, g1_down, g2_up, g2_down, fractal_values):
+    # This function calculates the sum of ranks of gamble 1 and gamble 2.
+    # It returns True if the sum of ranks of gamble 1 is greater than the sum of ranks of gamble 2.
+    # It returns False otherwise.
+
+    # check that all fractals can be ranked
+    for g in [g1_up, g1_down, g2_up, g2_down]:
+        if g not in fractal_values:
+            logger.error(f"Gamble value {g} is not in fractal_values.")
+            raise ValueError(f"Gamble value {g} is not in fractal_values.")
+
+    #calculate the ranks of the fractal
+    g1_up_rank = sorted(fractal_values).index(g1_up)
+    g1_down_rank = sorted(fractal_values).index(g1_down)
+    
+    g1_sum_of_ranks = g1_up_rank + g1_down_rank
+
+    return g1_sum_of_ranks
