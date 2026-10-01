@@ -10,23 +10,35 @@ We have implemented artificial agents with different decision heuristics based o
 - Introduction
     - Background: 
         The CPH experiment
+        Figure: Screenshot of one choice from experiment. Link to online version.
+        Figure: Individual trajectories
         Time-average growth rate optimality
     - Heuristics: 
         Heuristics as a plausible method for making complex decisions
         FFTs as a class of heuristics
+        Figure: Example of FFT (Ratin)
 - Method
     - Cues and decision rules
         Construction of cues and decision trees, incl. symmetry issues
         Full list of cue definitions + corresponding trees
+        Table: Cues (Ratin)
+        Table: FFTs (Ratin)
     - Accuracy measures
         Regular accuracy
-        Importance weighted
+        Importance-weighted accuracy
         Accuracy with respect to optimal and actual choices
     - Criteria for selecting and evaluating cues
         Frugality-accuracy tradeoff
-        Correct eta
+        Correct eta (profile rather than estimation dues to "well-known" issues)
 - Results
+    - Figure: Frugality-accuracy trade-off (Colm)
+    - Figure: Accuracy against choices vs accuracy against growth-rate optimality (Emilie)
+    - Figure: Importance-weighted accuracy (Emilie)
+    - Figure: eta-profiles (Emilie)
 - Discussion
     - Did we select the right cues?
     - Did the linearity in ranking impact results?
     - Maybe we actually do have intuition for transformations
+- Appendix
+    - Method for setting the tolerance for the PH
+        Figure: optimal tolerance (Emilie)
