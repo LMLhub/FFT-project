@@ -28,3 +28,5 @@ We have implemented artificial agents with different decision heuristics based o
 - Results
 - Discussion
     - Did we select the right cues?
+    - Did the linearity in ranking impact results?
+    - Maybe we actually do have intuition for transformations
