@@ -1,0 +1,56 @@
+\begin{table}[t]
+  \centering
+  \footnotesize
+  \renewcommand{\arraystretch}{1.0}
+  \setlength{\tabcolsep}{2.4pt}
+  \caption{Cues and the information they use.}
+  \label{tab:cues}
+  \vspace{4pt}
+  \begin{threeparttable}
+  \begin{tabular}{|>{\raggedright\arraybackslash}p{2.4cm}|l|>{\hspace{0pt}}p{4.85cm}|>{\raggedright\arraybackslash}p{2.5cm}|}
+    \hline
+    \textbf{Name} & \textbf{Abbreviation} & \textbf{Explanation} & \textbf{Information used} \\
+    \hline
+    Growth rate & \texttt{GR-max} & Choose the gamble with the higher time-average growth rate. & -- \\
+    \hline
+    Minimum growth rate & \texttt{GR-min} & Choose the gamble with the lower time-average growth rate. & -- \\
+    \hline
+    Expected utility & \texttt{EUT} & Choose the gamble with the higher expected isoelastic utility. & current wealth, additive or multiplicative, risk parameter $\eta$* \\
+    \hline
+    Sum of ranks & \texttt{SR} & Choose the gamble with the higher sum of fractal ranks. & all nine fractals \\
+    \hline
+    Positive signs & \texttt{SGN} & Choose the gamble with more positive fractals. & all nine fractals \\
+    \hline
+    Avoid the $n$ worst & \texttt{AW} & Choose the gamble that contains none of the $n$ worst of all fractals. & number $n$*, all nine fractals \\
+    \hline
+    Avoid worst available & \texttt{AW-a} & Choose the gamble that does not contain the worst of the four fractals shown. & -- \\
+    \hline
+    Prefer the $n$ best & \texttt{PB} & Choose the gamble that contains one of the $n$ best of all fractals. & number $n$*, all nine fractals \\
+    \hline
+    Prefer best available & \texttt{PB-a} & Choose the gamble that contains the best of the four fractals shown. & -- \\
+    \hline
+    Avoid worst or prefer best & \texttt{AW-PB} & Apply ``avoid the worst'' or ``prefer the best'', picked at random. & all nine fractals \\
+    \hline
+    Priority step 1 & \texttt{PH-1} & Choose the gamble with the higher minimum gain (lower minimum loss in the loss regime\textsuperscript{a}), if the minima differ enough. & tolerance*, additive or multiplicative \\
+    \hline
+    Priority step 3\textsuperscript{b} & \texttt{PH-3} & Choose the gamble with the higher maximum gain (lower maximum loss in the loss regime\textsuperscript{a}). & additive or multiplicative \\
+    \hline
+    Priority step 1, no loss & \texttt{PH-NL-1} & Apply priority step 1 after shifting all outcomes to be positive. & tolerance*, additive or multiplicative \\
+    \hline
+    Priority step 3, no loss & \texttt{PH-NL-3} & Apply priority step 3 after shifting all outcomes to be positive. & additive or multiplicative \\
+    \hline
+    Simplified priority step 1 & \texttt{ph-simple-1} & Choose the gamble with the higher minimum, if the ranks of the minima differ enough. & all nine fractals, tolerance* \\
+    \hline
+    Simplified priority step 3 & \texttt{ph-simple-3} & Choose the gamble with the higher maximum. & -- \\
+    \hline
+  \end{tabular}
+
+  \begin{tablenotes}
+    \footnotesize
+    \item[a] The loss regime applies when the mean of the four outcomes is negative.
+    \item[b] Priority step 2 compares probabilities; it is not used, as all are 0.5.
+    \item[*] Set by the modeller; all other information comes from the experiment.
+    \item[] Every cue also uses the four possible outcomes of the two gambles.
+  \end{tablenotes}
+  \end{threeparttable}
+\end{table}
