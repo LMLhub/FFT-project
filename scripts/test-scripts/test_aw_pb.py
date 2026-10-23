@@ -1,3 +1,6 @@
+# OBS: this script doesn't work, because the choices are mostly random, 
+# and hence output is difficult to check. Should not be run.
+
 import sys
 from pathlib import Path
 
@@ -18,16 +21,16 @@ def test_feature_function():
     #Tests that g2 values do not affect the result.
     
     # no worst or best fractal values present in g1
-    assert avoid_worst_or_prefer_best(50.0, 108.5, -407.0, -305.5, fractal_values=FRACTAL_VALUES) == 0
+    assert avoid_worst_or_prefer_best(50.0, 108.5, -407.0, -305.5, random_choice = 0,fractal_values=FRACTAL_VALUES) == 0
 
     # g1 contains the worst fractal value
-    assert avoid_worst_or_prefer_best(-407.0, 108.5, 50.0, 309.5, fractal_values=FRACTAL_VALUES) == -1
+    assert avoid_worst_or_prefer_best(-407.0, 108.5, 50.0, 309.5, random_choice = 0, fractal_values=FRACTAL_VALUES) == -1
 
     # g1 contains the best fractal value
-    assert avoid_worst_or_prefer_best(440.5, -305.5, 50.0, 309.5, fractal_values=FRACTAL_VALUES) == 1
+    assert avoid_worst_or_prefer_best(440.5, -305.5, 50.0, 309.5, random_choice = 0, fractal_values=FRACTAL_VALUES) == 1
 
     # g1 contains both the worst and best fractal values
-    assert avoid_worst_or_prefer_best(440.5, -407.0, 50.0, 309.5, fractal_values=FRACTAL_VALUES) == 0
+    assert avoid_worst_or_prefer_best(440.5, -407.0, 50.0, 309.5, random_choice = 0, fractal_values=FRACTAL_VALUES) == 0
 
     print("feature function: all tests passed.")
 
