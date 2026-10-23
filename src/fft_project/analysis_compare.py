@@ -18,6 +18,46 @@ GAMBLE_COLUMNS = [
     "gamma_right_down",
 ]
 
+
+def run_dynamic_experiment(
+    dynamic,
+    gamble_data,
+    experimental_results,
+    fft_ids,
+    random_seed=42,
+    wealth_update="data",
+):
+    """
+    Run a collection of registered FFTs and append participant observations.
+
+    Return the combined results, the FFT IDs including the experimental result
+    ID, and that experimental result ID. FFT registration remains the caller's
+    responsibility so this helper can be reused with different registries.
+    """
+    import pandas as pd
+
+    from fft_project.decision_class import FFT
+    from fft_project.experiment_class import Experiment
+
+    suffix = "a" if dynamic == "additive" else "m"
+    fft_ids = list(fft_ids)
+    experiment = Experiment(
+        id=f"exp_participant_{suffix}",
+        name="Participant-level comparison",
+        dynamic=dynamic,
+        description="Compare FFT and experimental results by participant.",
+        gamble_data=gamble_data,
+        ffts=[FFT.FFT_registry[fft_id] for fft_id in fft_ids],
+    )
+    results = experiment.run_experiment(
+        wealth_update=wealth_update,
+        random_seed=random_seed,
+    )
+
+    participant_result_id = f"experiment_{suffix}"
+    results = pd.concat([results, experimental_results], axis=1)
+    return results, fft_ids + [participant_result_id], participant_result_id
+
 def eta_choice(
     eta,
     dynamic,
@@ -230,6 +270,53 @@ def etas_compare(gamble_data, results, etas, fft_id, dynamic, runs=None, random_
     return etas, accuracies
 
 
+def etas_compare_by_participant(
+    gamble_data,
+    results,
+    etas,
+    fft_id,
+    dynamic,
+    runs=None,
+    random_seed=None,
+):
+    """Return mean, 25th-, and 75th-percentile eta accuracy by participant."""
+    if "participant_id" not in gamble_data.columns:
+        raise ValueError(
+            "gamble_data must contain 'participant_id' for participant-level accuracy."
+        )
+
+    if runs is None:
+        runs = _latest_run(results, fft_id)
+
+    choices = _result_series(results, fft_id, runs, "selected_side")
+    wealth = _result_series(results, fft_id, runs, "wealth_pre")
+    participant_ids = gamble_data["participant_id"]
+    participants = participant_ids.dropna().unique()
+    if len(participants) == 0:
+        raise ValueError("Cannot calculate participant accuracy without participant IDs.")
+
+    participant_accuracies = []
+    for participant_id in participants:
+        participant_mask = participant_ids == participant_id
+        _, accuracies = match_etas_data(
+            gamble_data.loc[participant_mask],
+            choices.loc[participant_mask],
+            wealth.loc[participant_mask],
+            etas,
+            dynamic,
+            random_seed,
+        )
+        participant_accuracies.append(accuracies)
+
+    participant_accuracies = np.asarray(participant_accuracies, dtype=float)
+    return (
+        list(etas),
+        participant_accuracies.mean(axis=0),
+        np.percentile(participant_accuracies, 25, axis=0),
+        np.percentile(participant_accuracies, 75, axis=0),
+    )
+
+
 def eta_match(gamble_data, results, fft_id, runs=None, eta_values=None, dynamic="additive", random_seed=None):
     """
     Backwards-compatible wrapper for comparing one FFT to a list of eta values.
@@ -260,7 +347,10 @@ def plot_etas_compare(
     title=None,
 ):
     """
-    Plot eta-match accuracies for a list of FFT ids.
+    Plot mean participant eta-match accuracies for a list of FFT ids.
+
+    The shaded interval spans the 25th to 75th percentile of participant
+    accuracies at each eta value.
 
     This is the reusable version of each subplot loop in eta-visual-test.py.
     Pass an existing matplotlib axis to draw into a subplot, or omit ax to create
@@ -275,14 +365,16 @@ def plot_etas_compare(
         fft_registry = yaml.safe_load(f)
     
     for fft_name in fft_names:
-        etas_result, fft_accuracy = etas_compare(
-            gamble_data,
-            results,
-            etas,
-            fft_name,
-            dynamic,
-            runs=runs,
-            random_seed=random_seed,
+        etas_result, fft_accuracy, lower_accuracy, upper_accuracy = (
+            etas_compare_by_participant(
+                gamble_data,
+                results,
+                etas,
+                fft_name,
+                dynamic,
+                runs=runs,
+                random_seed=random_seed,
+            )
         )
         
         if "experiment" in fft_name:
@@ -292,7 +384,20 @@ def plot_etas_compare(
             plot_name = fft_registry[fft_name]["name"]
             style = "-"
             
-        ax.plot(etas_result, fft_accuracy, label=plot_name, linestyle = style)
+        line, = ax.plot(
+            etas_result,
+            fft_accuracy,
+            label=plot_name,
+            linestyle=style,
+        )
+        ax.fill_between(
+            etas_result,
+            lower_accuracy,
+            upper_accuracy,
+            color=line.get_color(),
+            alpha=0.15,
+            linewidth=0,
+        )
 
     ax.legend(
         loc="upper center",
@@ -300,7 +405,7 @@ def plot_etas_compare(
         fontsize=8,
     )
     ax.set_xlabel("Eta")
-    ax.set_ylabel("Accuracy")
+    ax.set_ylabel("Mean participant accuracy")
 
     ax.set_title(title or f"{dynamic.capitalize()} dynamics")
 
@@ -412,4 +517,386 @@ def plot_accuracy_gamma_scatter(
     ax.set_ylabel("Time-average growth rate")
     ax.set_title(title or "Accuracy vs time-average growth rate")
 
+    return ax
+
+
+def plot_participant_accuracy_gamma_scatter(
+    results,
+    fft_ids,
+    participant_result_id,
+    reference_id,
+    ax=None,
+    title=None,
+    runs=1,
+):
+    """
+    Plot accuracy and average chosen growth rate separately by participant.
+
+    Each point represents one participant/FFT combination. FFTs retain a
+    consistent colour, and the observed participant IDs are read from the
+    participant result columns.
+    """
+    if ax is None:
+        import matplotlib.pyplot as plt
+
+        _, ax = plt.subplots()
+    else:
+        import matplotlib.pyplot as plt
+
+    participant_ids = results[
+        (participant_result_id, runs, "participant_id")
+    ]
+    participants = participant_ids.dropna().unique()
+    colours = plt.get_cmap("tab10")
+
+    for fft_number, fft_id in enumerate(fft_ids):
+        for participant_number, participant_id in enumerate(participants):
+            participant_results = results.loc[
+                participant_ids == participant_id
+            ]
+            accuracy = accuracy_against_reference(
+                participant_results,
+                fft_id,
+                reference_id,
+                runs=runs,
+            )
+            average_gamma = average_chosen_expected_gamma(
+                participant_results,
+                fft_id,
+                runs=runs,
+            )
+            ax.scatter(
+                accuracy,
+                average_gamma,
+                color=colours(fft_number % 10),
+                marker=".",
+                alpha=0.75,
+                label=fft_id if participant_number == 0 else None,
+            )
+
+    ax.set_xlabel(f"Accuracy against {reference_id}")
+    ax.set_ylabel("Time-average growth rate")
+    ax.set_title(title or "Participant accuracy vs time-average growth rate")
+    ax.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.18),
+        fontsize=7,
+        ncol=2,
+    )
+
+    return ax
+
+
+def plot_participant_accuracy_comparison(
+    results,
+    fft_ids,
+    participant_result_id,
+    x_reference_id,
+    y_reference_id,
+    ax=None,
+    title=None,
+    runs=1,
+    x_label=None,
+    y_label=None,
+):
+    """Plot two decision accuracies for every participant and FFT."""
+    import matplotlib.pyplot as plt
+
+    if ax is None:
+        _, ax = plt.subplots()
+
+    participant_ids = results[(participant_result_id, runs, "participant_id")]
+    participants = participant_ids.dropna().unique()
+    colours = plt.get_cmap("tab10")
+
+    for fft_number, fft_id in enumerate(fft_ids):
+        for participant_number, participant_id in enumerate(participants):
+            participant_results = results.loc[participant_ids == participant_id]
+            fft_choices = participant_results[(fft_id, runs, "selected_side")]
+
+            accuracies = []
+            for reference_id in (x_reference_id, y_reference_id):
+                reference_choices = participant_results[
+                    (reference_id, runs, "selected_side")
+                ]
+                valid_rows = fft_choices.notna() & reference_choices.notna()
+                accuracies.append(
+                    (fft_choices[valid_rows] == reference_choices[valid_rows]).mean()
+                )
+
+            ax.scatter(
+                accuracies[0],
+                accuracies[1],
+                color=colours(fft_number % 10),
+                marker=".",
+                alpha=0.75,
+                label=fft_id if participant_number == 0 else None,
+            )
+
+    ax.set_xlabel(x_label or f"Accuracy against {x_reference_id}")
+    ax.set_ylabel(y_label or f"Accuracy against {y_reference_id}")
+    ax.set_title(title or "Participant accuracy comparison")
+    ax.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.18),
+        fontsize=7,
+        ncol=2,
+    )
+    return ax
+
+
+def _rank_cutoff_label(cutoff):
+    labels = {
+        1: "1st",
+        2: "1st or 2nd",
+        3: "1st, 2nd or 3rd",
+    }
+    return labels.get(cutoff, f"Top {cutoff}")
+
+
+def participant_rank_statistics(
+    results,
+    fft_ids,
+    participant_result_id,
+    rank_cutoffs=(1, 2, 3),
+    runs=1,
+):
+    """
+    Calculate FFT prevalence and accuracy within participant-level rankings.
+
+    Ranking is based on agreement with each participant's experimental choices.
+    Tied FFTs split the available rank slots evenly. Fractions are normalized
+    within each cutoff and therefore sum to one.
+    """
+    import pandas as pd
+
+    fft_ids = list(fft_ids)
+    rank_cutoffs = tuple(sorted(set(rank_cutoffs)))
+    if not rank_cutoffs or rank_cutoffs[0] < 1:
+        raise ValueError("rank_cutoffs must contain positive integers")
+
+    credits = {
+        cutoff: pd.Series(0.0, index=fft_ids) for cutoff in rank_cutoffs
+    }
+    accuracy_sums = {
+        cutoff: pd.Series(0.0, index=fft_ids) for cutoff in rank_cutoffs
+    }
+    participant_ids = results[(participant_result_id, runs, "participant_id")]
+    participant_count = 0
+
+    for participant_id in participant_ids.dropna().unique():
+        participant_results = results.loc[participant_ids == participant_id]
+        reference_choices = participant_results[
+            (participant_result_id, runs, "selected_side")
+        ]
+        participant_accuracies = {}
+        for fft_id in fft_ids:
+            fft_choices = participant_results[(fft_id, runs, "selected_side")]
+            valid_rows = fft_choices.notna() & reference_choices.notna()
+            participant_accuracies[fft_id] = (
+                fft_choices[valid_rows] == reference_choices[valid_rows]
+            ).mean()
+        accuracies = pd.Series(participant_accuracies, dtype=float).dropna()
+        if accuracies.empty:
+            continue
+
+        participant_count += 1
+        accuracy_tiers = sorted(accuracies.unique(), reverse=True)
+        for cutoff in rank_cutoffs:
+            remaining_slots = min(float(cutoff), float(len(accuracies)))
+            for accuracy_level in accuracy_tiers:
+                tied_ffts = accuracies.index[
+                    np.isclose(accuracies, accuracy_level)
+                ]
+                tier_slots = min(remaining_slots, float(len(tied_ffts)))
+                tier_credit = tier_slots / len(tied_ffts)
+                credits[cutoff].loc[tied_ffts] += tier_credit
+                accuracy_sums[cutoff].loc[tied_ffts] += (
+                    accuracies.loc[tied_ffts] * tier_credit
+                )
+                remaining_slots -= tier_slots
+                if remaining_slots == 0:
+                    break
+
+    fractions = {}
+    average_accuracies = {}
+    first_cutoff = rank_cutoffs[0]
+    for cutoff in rank_cutoffs:
+        total_credit = credits[cutoff].sum()
+        fractions[cutoff] = (
+            credits[cutoff] / total_credit if total_credit else credits[cutoff].copy()
+        )
+        average_accuracies[cutoff] = accuracy_sums[cutoff].div(
+            credits[cutoff].replace(0, np.nan)
+        )
+
+    stacking_order = fractions[first_cutoff].sort_values(
+        ascending=False,
+        kind="stable",
+    ).index
+    fractions = {
+        cutoff: values.reindex(stacking_order)
+        for cutoff, values in fractions.items()
+    }
+
+    return {
+        "fft_ids": fft_ids,
+        "rank_cutoffs": rank_cutoffs,
+        "fractions": fractions,
+        "average_accuracies": average_accuracies,
+        "credits": credits,
+        "participant_count": participant_count,
+    }
+
+
+def plot_participant_rank_fractions(
+    rank_statistics,
+    ax=None,
+    title=None,
+    width=0.9,
+):
+    """Plot normalized FFT shares as stacked bars for each rank cutoff."""
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch
+    from matplotlib.ticker import PercentFormatter
+
+    if ax is None:
+        _, ax = plt.subplots()
+
+    fft_ids = rank_statistics["fft_ids"]
+    colours = plt.get_cmap("tab10")
+    fft_colours = {
+        fft_id: colours(fft_number % 10)
+        for fft_number, fft_id in enumerate(fft_ids)
+    }
+
+    for cutoff in rank_statistics["rank_cutoffs"]:
+        bottom = 0.0
+        for fft_id, fraction in rank_statistics["fractions"][cutoff].items():
+            ax.bar(
+                _rank_cutoff_label(cutoff),
+                fraction,
+                bottom=bottom,
+                color=fft_colours[fft_id],
+                width=width,
+            )
+            bottom += fraction
+
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Fraction of individuals")
+    ax.set_title(title or "Participant FFT rankings")
+    ax.yaxis.set_major_formatter(PercentFormatter(1.0))
+    ax.legend(
+        handles=[
+            Patch(facecolor=fft_colours[fft_id], label=fft_id)
+            for fft_id in fft_ids
+        ],
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.15),
+        fontsize=7,
+        ncol=2,
+    )
+    return ax
+
+
+def plot_rank_fraction_accuracy(
+    rank_statistics,
+    ax=None,
+    title=None,
+    y_limits=(0.55, 0.80),
+    x_label="Relative prevalence among individuals",
+):
+    """Plot rank prevalence against weighted participant accuracy for each FFT."""
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
+    from matplotlib.ticker import PercentFormatter
+
+    if ax is None:
+        _, ax = plt.subplots()
+
+    fft_ids = rank_statistics["fft_ids"]
+    rank_cutoffs = rank_statistics["rank_cutoffs"]
+    marker_options = ("o", "s", "^", "D", "v", "P", "X")
+    rank_markers = {
+        cutoff: marker_options[number % len(marker_options)]
+        for number, cutoff in enumerate(rank_cutoffs)
+    }
+    colours = plt.get_cmap("tab10")
+    fft_colours = {
+        fft_id: colours(fft_number % 10)
+        for fft_number, fft_id in enumerate(fft_ids)
+    }
+
+    for cutoff in rank_cutoffs:
+        for fft_id in fft_ids:
+            accuracy = rank_statistics["average_accuracies"][cutoff].loc[fft_id]
+            if np.isnan(accuracy):
+                continue
+            ax.scatter(
+                rank_statistics["fractions"][cutoff].loc[fft_id],
+                accuracy,
+                color=fft_colours[fft_id],
+                marker=rank_markers[cutoff],
+                alpha=0.8,
+            )
+
+    for fft_id in fft_ids:
+        points = [
+            (
+                rank_statistics["fractions"][cutoff].loc[fft_id],
+                rank_statistics["average_accuracies"][cutoff].loc[fft_id],
+            )
+            for cutoff in rank_cutoffs
+            if not np.isnan(
+                rank_statistics["average_accuracies"][cutoff].loc[fft_id]
+            )
+        ]
+        if len(points) > 1:
+            x_values, y_values = zip(*points)
+            ax.plot(
+                x_values,
+                y_values,
+                color=fft_colours[fft_id],
+                linewidth=1,
+                alpha=0.6,
+            )
+
+    ax.set_xlim(left=0)
+    ax.set_ylim(*y_limits)
+    ax.set_box_aspect(1)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel("Average accuracy against experimental data")
+    ax.set_title(title or "Rank prevalence vs participant accuracy")
+    ax.xaxis.set_major_formatter(PercentFormatter(1.0))
+    ax.yaxis.set_major_formatter(PercentFormatter(1.0))
+
+    fft_legend = ax.legend(
+        handles=[
+            Patch(facecolor=fft_colours[fft_id], label=fft_id)
+            for fft_id in fft_ids
+        ],
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.18),
+        fontsize=7,
+        ncol=2,
+    )
+    ax.add_artist(fft_legend)
+    ax.legend(
+        handles=[
+            Line2D(
+                [0],
+                [0],
+                marker=rank_markers[cutoff],
+                color="black",
+                linestyle="None",
+                label=_rank_cutoff_label(cutoff),
+            )
+            for cutoff in rank_cutoffs
+        ],
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.43),
+        fontsize=7,
+        ncol=len(rank_cutoffs),
+    )
     return ax
