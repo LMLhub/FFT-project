@@ -385,7 +385,7 @@ def ph_rank_1(g1_up, g1_down, g2_up, g2_down, fractal_values, tol_relative = 2):
 
 def ph_rank_3(g1_up, g1_down, g2_up, g2_down, fractal_values):
     # This is the feature function for the rank-based priority heuristic.
-    # It is similar to ph_1, but it uses rank based values.
+    # It is similar to ph_3, but it uses rank based values.
     
     # check that all fractals can be ranked
     for g in [g1_up, g1_down, g2_up, g2_down]:
@@ -403,7 +403,7 @@ def ph_rank_3(g1_up, g1_down, g2_up, g2_down, fractal_values):
 
     # determine if the average rank is less than half of the number of fractals,
     #Check if the average outcome is negative, if so, switch signs of all values
-    if (g1_up_rank + g1_down_rank + g2_up_rank + g2_down_rank)/4 < 0.5*len(fractal_values):
+    if (g1_up_rank + g1_down_rank + g2_up_rank + g2_down_rank)/4 < 0.5*(len(fractal_values)-1):
         reversed = True
 
     if reversed:
