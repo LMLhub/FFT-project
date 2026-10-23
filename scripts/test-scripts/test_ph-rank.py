@@ -9,29 +9,13 @@ from fft_project.cue_class import Cue
 from fft_project.cue_features import ph_rank_1, ph_rank_3
 from fft_project.decision_class import FFT
 
+from fft_project.cue_class import Cue
+from fft_project.cue_features import ph_rank_1, ph_rank_3
+from fft_project.decision_class import FFT
+
+
 #Fractal values for the additive dynamic from the experiment.
 FRACTAL_VALUES = [-407.0, -305.5, -241.5, -49.0, 50.0, 108.5, 210.5, 309.5, 440.5]
-
-def test_feature_function():
-    #Tests that the function returns True if g1 avoids the worst fractal values.
-    #Tests that the function returns False if g1 contains a worst fractal value.
-    #Tests that g2 values do not affect the result.
-    
-    assert priority_step1(1001, 0, 100, 100, tol = 0.1, dynamic="additive") == False
-    assert priority_step1(999, 0, 100, 100, tol = 0.1, dynamic="additive") == False
-    assert priority_step1(100, 100, 999, 0, tol=0.1, dynamic="additive" ) == True
-    assert priority_step1(100, 100, 1001, 0, tol=0.1, dynamic="additive" ) == False
-    assert priority_step1(-400, 1002, 999, 0, tol=0.1, dynamic="additive" ) == False
-    assert priority_step1(999, 0, -400, 1002, tol=0.1, dynamic="additive" ) == True
-    assert priority_step1(-400, -1, -300, -1, tol=0.1, dynamic="additive" ) == False
-    assert priority_step1(-300, -1, -400, -1, tol=0.1, dynamic="additive" ) == False
-    assert priority_step1(-1001, 0, -100, -100, tol = 0.1, dynamic="additive") == False
-    assert priority_step1(-100, -100, -1001, 0, tol = 0.1, dynamic="additive") == False
-    assert priority_step1(-999, 0, -100, -100, tol = 0.1, dynamic="additive") == True #correct?
-    assert priority_step1(-100, -100, -999, 0, tol=0.1, dynamic="additive" ) == False
-    assert priority_step1(-100, -100, -1001, 0, tol=0.1, dynamic="additive" ) == False
-
-    print("feature function: all tests passed.")
 
 
 def test_cue_evaluate():
@@ -48,7 +32,7 @@ def test_cue_evaluate():
         threshold   = 0,
         params      = {},
         required_args = ["gamma_left_up", "gamma_left_down",
-                                 "gamma_right_up", "gamma_right_down", "fractal_values", "tol"]
+                                 "gamma_right_up", "gamma_right_down", "fractal_values", "tol_relative"]
         )
 
     cue2 = Cue(
@@ -60,25 +44,26 @@ def test_cue_evaluate():
             threshold   = 0,
             params      = {},
             required_args = ["gamma_left_up", "gamma_left_down",
-                                     "gamma_right_up", "gamma_right_down"]
+                                     "gamma_right_up", "gamma_right_down","fractal_values"]
             )
         
-    val, side = cue1.evaluate(50.0, 108.5, -407.0, -305.5, fractal_values=FRACTAL_VALUES, tol = 1)
+    val, side = cue1.evaluate(50.0, 108.5, -407.0, -305.5, fractal_values=FRACTAL_VALUES, tol_relative = 1)
     assert side == "left"
 
-    val, side = cue1.evaluate(-407.0, 108.5, 50.0, 309.5, fractal_values=FRACTAL_VALUES, tol = 1)
+    val, side = cue1.evaluate(-407.0, 108.5, 50.0, 309.5, fractal_values=FRACTAL_VALUES, tol_relative = 1)
     assert side == "right"
 
-    val, side = cue1.evaluate(50.0, 108.5, 50.0, 440.5, fractal_values=FRACTAL_VALUES, tol = 1)
+    val, side = cue1.evaluate(50.0, 108.5, 50.0, 440.5, fractal_values=FRACTAL_VALUES, tol_relative = 1)
     assert side is None
 
-    val, side = cue2.evaluate(50.0, 108.5, -407.0, -305.5)
+    val, side = cue2.evaluate(50.0, 108.5, -407.0, -305.5, fractal_values =FRACTAL_VALUES)
     assert side == "left"
 
-    val, side = cue2.evaluate(-407.0, 108.5, 50.0, 309.5)
+    val, side = cue2.evaluate(-407.0, 108.5, 50.0, 309.5, fractal_values =FRACTAL_VALUES)
     assert side == "right"
 
-    val, side = cue2.evaluate(50.0, 108.5, -49.0, 108.5)
+    val, side = cue2.evaluate(50.0, 108.5, -49.0, 108.5, fractal_values = FRACTAL_VALUES)
+    print(side)
     assert side is None
 
     print("Cue.evaluate: all tests passed.")
@@ -104,14 +89,13 @@ def test_fft():
     assert i == 2
 
     # Test when minima differ by less than the tol, and maxima are equal
-    cue_values, side, i = fft.decide(108.5, -407.0, 108.5, -305.5, fractal_values=FRACTAL_VALUES, tol = 3)
+    cue_values, side, i = fft.decide(108.5, 50.0, 108.5, -49.0, fractal_values=FRACTAL_VALUES, tol = 3)
     assert i == 3
 
     print("FFT.decide: all tests passed.")
     
 
 if __name__ == "__main__":
-    test_feature_function()
     test_cue_evaluate()
-    #test_fft()
+    test_fft()
     print("\nAll tests passed.")

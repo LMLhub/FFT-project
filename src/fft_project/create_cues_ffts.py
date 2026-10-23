@@ -456,7 +456,7 @@ def create_cues():
     Cue(
         id          = "ph-rank-3",
         name        = f"Rank-based ph cue 3",
-        description = f"Checks if the difference in the rank of the maximum gains is greater than the threshold, but unlike the simplified version, it uses the actual fractal values to determine the rank of the maximum gains.",
+        description = f"Returns the gamble with the maximum rank.",
         feature     = ph_rank_3,
         type        = "boolean",
         threshold   = 0,
