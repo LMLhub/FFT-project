@@ -7,7 +7,13 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from fft_project.cue_class import Cue
 from fft_project.decision_class import FFT
 from fft_project.experiment_class import Experiment
-from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility
+from fft_project.cue_features import (
+    avoid_worst_n_ranks,
+    expected_isoelastic_utility,
+    growth_rate,
+    signs,
+)
+import numpy as np
 import pandas as pd
 
 from fft_project.simulation_gamble_data import simulate_gamble_data
@@ -61,6 +67,17 @@ def create_cues():
         required_args = ["gamma_left_up", "gamma_left_down",
                          "gamma_right_up", "gamma_right_down"],
     )
+
+    Cue(
+        id="c05",
+        name="Fractal signs",
+        description="Prefers the gamble with more positive fractal values.",
+        feature=signs,
+        type="numerical",
+        threshold=0,
+        required_args=["gamma_left_up", "gamma_left_down",
+                       "gamma_right_up", "gamma_right_down"],
+    )
 def create_ffts():
     fft = FFT(id="fft2",
               name="Avoid the worst or random - additive",
@@ -76,6 +93,13 @@ def create_ffts():
               name="Avoid the worst - multiplicative",
               description="An example FFT with avoid the worst cue.",
               cues=[Cue.cue_registry["c04"]])
+
+    fractal_sign_fft = FFT(
+        id="fft5",
+        name="Fractal sign",
+        description="An FFT that prefers the gamble with more positive outcomes.",
+        cues=[Cue.cue_registry["c05"]],
+    )
 
 def test_wealth_trajectory():
     # Test wealth trajectory method
@@ -111,6 +135,72 @@ def test_accuracy():
 
     accuracy_result = Experiment.experiment_registry['exp1'].accuracy(fft_id="fft2", reference_id="fft3")    
     print(f"Accuracy of fft2 at run 1 and 2: {accuracy_result:.2f}")
+
+def test_importance_weighted_accuracy_simulated_data():
+    """Check importance-weighted accuracy against a manual calculation."""
+    gamble_data = simulate_gamble_data(
+        100,
+        FRACTAL_VALUES,
+        random_seed=42,
+    )
+    experiment = Experiment(
+        id="exp_importance_weighted_accuracy",
+        name="Importance-weighted accuracy test",
+        description="Test weighted accuracy using simulated additive gambles.",
+        ffts=[
+            FFT.FFT_registry["fft2"],
+            FFT.FFT_registry["fft3"],
+            FFT.FFT_registry["fft5"],
+        ],
+        gamble_data=gamble_data,
+        initial_wealth=1000,
+        dynamic="additive",
+    )
+    experiment.run_experiment(wealth_update="constant", random_seed=42)
+
+    default_accuracy = experiment.accuracy("fft5", "fft3", run_no=1)
+    explicit_unweighted_accuracy = experiment.accuracy(
+        "fft5",
+        "fft3",
+        run_no=1,
+        importance_weighted=False,
+    )
+    weighted_accuracy = experiment.accuracy(
+        "fft5",
+        "fft3",
+        run_no=1,
+        importance_weighted=True,
+    )
+    perfect_weighted_accuracy = experiment.accuracy(
+        "fft5",
+        "fft5",
+        run_no=1,
+        importance_weighted=True,
+    )
+
+    left_expected_gamma = gamble_data[
+        ["gamma_left_up", "gamma_left_down"]
+    ].mean(axis=1)
+    right_expected_gamma = gamble_data[
+        ["gamma_right_up", "gamma_right_down"]
+    ].mean(axis=1)
+    distances = (left_expected_gamma - right_expected_gamma).abs()
+    weights = distances / distances.max()
+
+    fft_decisions = experiment.results[("fft5", 1, "selected_side")]
+    reference_decisions = experiment.results[("fft3", 1, "selected_side")]
+    signed_matches = np.where(fft_decisions == reference_decisions, 1.0, -1.0)
+    expected_weighted_accuracy = 0.5 * (
+        1.0 + (signed_matches * weights).sum() / weights.sum()
+    )
+
+    assert np.isclose(default_accuracy, explicit_unweighted_accuracy)
+    assert 0.0 <= weighted_accuracy <= 1.0
+    assert np.isclose(weighted_accuracy, expected_weighted_accuracy)
+    assert np.isclose(perfect_weighted_accuracy, 1.0)
+
+    print(f"Fractal-sign unweighted accuracy: {default_accuracy:.3f}")
+    print(f"Fractal-sign importance-weighted accuracy: {weighted_accuracy:.3f}")
 
 def test_frugality():
     #test frugality method
@@ -183,6 +273,7 @@ def main():
     test_frugality()
     test_multi_wealth_trajectory()
     test_multi_wealth_trajectory_sim_data()
-    
+    test_importance_weighted_accuracy_simulated_data()
+
 if __name__ == "__main__":
     main() 
