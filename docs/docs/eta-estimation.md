@@ -16,7 +16,7 @@ $$
 
 The parameter $\eta$ controls the curvature of this transformation and
 therefore how a participant values outcomes. At $\eta = 0$ the
-transformation is linear — the participant cares about the expected
+transformation is linear, so the participant cares about the expected
 value of a gamble and treats gains and losses symmetrically. At $\eta = 1$
 it becomes logarithmic, which is the growth-optimal strategy under
 multiplicative dynamics. As $\eta$ increases beyond 1, large outcomes are
@@ -39,7 +39,7 @@ $$
 This is the same thing written as $\Delta\langle\delta f_\eta\rangle$ further
 down.
 
-A fast-and-frugal tree decides in like this, once a cue fires, it picks the side with the higher value. What we use here is a softer version of that, the participant picks the better side most of the time, but not always. How strict this is depends on beta, the bigger beta gets, the closer we are to the hard rule of the tree. In that sense the tree is just the extreme case.
+A fast-and-frugal tree decides like this: once a cue fires, it picks the side with the higher value. What we use here is a softer version of that, the participant picks the better side most of the time, but not always. How strict this is depends on beta, the bigger beta gets, the closer we are to the hard rule of the tree. In that sense the tree is just the extreme case.
 
 This only holds  as long as there is a single cue. Estimating eta like this
 assumes the utility cue is the only thing behind a choice. As soon as a tree
@@ -68,7 +68,7 @@ are unknown and estimated simultaneously.
 
 The logistic function gives the probability $\theta_t$ of a single choice. To
 estimate $\eta$, the probability of the entire sequence of observed choices is
-needed — and the Bernoulli distribution provides the link.
+needed, and the Bernoulli distribution provides the link.
 
 Each trial has exactly two outcomes (left or right), so each choice is modelled
 as a Bernoulli trial:
@@ -100,53 +100,37 @@ $$
 \log p(\text{data} \mid \eta, \beta) = \sum_{t=1}^{T}\big[\,y_t\log\theta_t + (1-y_t)\log(1-\theta_t)\,\big]
 $$
 
-This is the term $p(\text{data} \mid \eta, \beta)$ that enters Bayes' theorem
-below.
+## Maximum likelihood estimate
 
-## Bayesian estimation
-
-The goal is to find which values of $\eta$ are consistent with the
-observed choices. Bayesian inference does this by combining prior knowledge
-and the data into a posterior distribution that reflects all plausible values
-of $\eta$ along with their relative probability.
+We estimate $\eta$ and $\beta$ by maximising the log-likelihood above:
 
 $$
-p(\eta, \beta \mid \text{data}) \propto p(\text{data} \mid \eta, \beta) \times p(\eta, \beta)
+(\hat\eta, \hat\beta) = \arg\max_{\eta,\,\beta}\; \log p(\text{data} \mid \eta, \beta)
 $$
 
-The **prior** $p(\eta, \beta)$ represents what is assumed before seeing
-any choices. Weakly informative priors are used — $\eta$ is normally
-distributed over a broad range, $\beta$ is log-normally distributed —
-so that the estimates are driven by the data rather than prior assumptions.
+There is no closed form, but with only two parameters a numerical optimiser
+(Nelder-Mead) converges quickly. We optimise over $\log\beta$ to keep $\beta$
+positive and fit each participant separately, giving one $\hat\eta$ per
+participant and condition. $\beta$ acts as a nuisance parameter that absorbs
+choice noise, so $\hat\eta$ reflects the preferred side rather than the
+consistency of the choices.
 
-The **likelihood** $p(\text{data} \mid \eta, \beta)$ is the Bernoulli product
-defined above. It measures how well a candidate $(\eta, \beta)$ pair predicts
-the participant's actual choices. If a particular $\eta$ consistently predicts
-the gamble the participant chose, it receives a high likelihood.
+## MAP with weak priors
 
-The **posterior** is the combination of both. Rather than returning a
-single number, it is a full distribution showing which $\eta$ values are
-plausible given the data. The peak of this distribution — the Maximum a
-Posteriori (MAP) estimate — is used as the point estimate per participant.
+For near-separable choices the likelihood is maximised as $\beta \to \infty$
+with $\eta$ diverging. We regularise by maximising the log-posterior instead,
 
-## MCMC sampling
+$$
+(\hat\eta, \hat\beta) = \arg\max_{\eta,\,\beta}\;\big[\log p(\text{data} \mid \eta, \beta) + \log p(\eta, \beta)\big]
+$$
 
-The posterior has no closed-form solution and is instead approximated
-using Markov Chain Monte Carlo (MCMC) sampling via JAGS. The sampler
-generates a large collection of $(\eta, \beta)$ values by exploring the
-parameter space, spending more time in regions where the parameters fit
-the data well. Four independent chains with 10,000 samples each are run,
-discarding the first 1,000 as burn-in. Convergence is verified using the
-Gelman-Rubin R-hat statistic, which should fall between 1 and 1.01.
+with weak priors (a broad normal on $\eta$, a log-normal on $\beta$).
+Dropping the priors recovers the MLE.
 
-## Hierarchical estimation
+## What we leave out for now
 
-Rather than estimating $\eta$ for each participant completely
-independently, a hierarchical (partial pooling) model is used. All
-individual $\eta$ values are assumed to come from the same group-level
-distribution, whose mean and variance are estimated from the full dataset.
-As a result, each participant's estimate is informed not only by their own
-choices, but also by what is typical across the group. This is
-particularly useful when a participant's choices are noisy: instead of
-producing an unreliable individual estimate, the model falls back on the
-group mean. This process is known as shrinkage.
+We use the same likelihood as the paper but skip the hierarchical Bayesian
+model and MCMC (JAGS). That would add full posteriors per participant and
+partial pooling across participants (shrinkage for noisy participants).
+Neither is needed for a first per-participant point estimate, so we defer it.
+The hierarchical model can be added later on top of the same likelihood.
