@@ -348,8 +348,17 @@ def ph_rank_1(g1_up, g1_down, g2_up, g2_down, fractal_values, tol_relative = 2):
     # This variable is used to keep track of whether the signs of the gamble values have been reversed.
     reversed = False
 
+    # Calculate when the the sign should be reversed
+    last_index = -1
+
+    for i in range(len(fractal_values)):
+        if fractal_values[i] < 0:
+            last_index = i
+
+    sign_switch_index = last_index + 0.5
+
     #Check if the average outcome is negative, if so, switch signs of all values
-    if (g1_up_rank + g1_down_rank + g2_up_rank + g2_down_rank)/4 < 3.5:
+    if (g1_up_rank + g1_down_rank + g2_up_rank + g2_down_rank)/4 < sign_switch_index:
         reversed = True
 
     if reversed:
@@ -401,9 +410,18 @@ def ph_rank_3(g1_up, g1_down, g2_up, g2_down, fractal_values):
 
     reversed = False
 
+    # Calculate when the the sign should be reversed
+    last_index = -1
+
+    for i in range(len(fractal_values)):
+        if fractal_values[i] < 0:
+            last_index = i
+
+    sign_switch_index = last_index + 0.5
+
     # determine if the average rank is less than half of the number of fractals,
     #Check if the average outcome is negative, if so, switch signs of all values
-    if (g1_up_rank + g1_down_rank + g2_up_rank + g2_down_rank)/4 < 0.5*(len(fractal_values)-1):
+    if (g1_up_rank + g1_down_rank + g2_up_rank + g2_down_rank)/4 < sign_switch_index:
         reversed = True
 
     if reversed:
