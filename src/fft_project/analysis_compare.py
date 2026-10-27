@@ -1,3 +1,4 @@
+
 import logging
 import numpy as np
 from fft_project.cue_features import expected_isoelastic_utility
@@ -8,6 +9,9 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+from fft_project.decision_class import FFT
+from fft_project.experiment_class import Experiment
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +39,6 @@ def run_dynamic_experiment(
     responsibility so this helper can be reused with different registries.
     """
     import pandas as pd
-
-    from fft_project.decision_class import FFT
-    from fft_project.experiment_class import Experiment
 
     suffix = "a" if dynamic == "additive" else "m"
     fft_ids = list(fft_ids)
@@ -361,9 +362,6 @@ def plot_etas_compare(
 
         _, ax = plt.subplots()
 
-    with open("fft_registry.yaml", "r") as f:
-        fft_registry = yaml.safe_load(f)
-    
     for fft_name in fft_names:
         etas_result, fft_accuracy, lower_accuracy, upper_accuracy = (
             etas_compare_by_participant(
@@ -381,7 +379,7 @@ def plot_etas_compare(
             plot_name = "Experimental data"
             style = "--"
         else:
-            plot_name = fft_registry[fft_name]["name"]
+            plot_name = fft_name
             style = "-"
             
         line, = ax.plot(
@@ -470,13 +468,10 @@ def plot_accuracy_gamma_scatter(
     if fft_ids is None:
         fft_ids = list(dict.fromkeys(results.columns.get_level_values("fft_id")))
 
-    with open("fft_registry.yaml", "r") as f:
-        fft_registry = yaml.safe_load(f)
-
     if "experiment" in reference_id:
         reference_name = "Experimental data"
     else:
-        reference_name = fft_registry.get(reference_id, {}).get("name", reference_id)
+        reference_name = FFT.FFT_registry.get(reference_id, {}).get("name", reference_id)
 
     for fft_id in fft_ids:
         run = _latest_run(results, fft_id) if runs is None else runs
@@ -486,7 +481,7 @@ def plot_accuracy_gamma_scatter(
         if "experiment" in fft_id:
             plot_name = "Experimental data"
         else:
-            plot_name = fft_registry.get(fft_id, {}).get("name", fft_id)
+            plot_name = FFT.FFT_registry.get(fft_id, {}).get("name", fft_id)
 
         ax.scatter(accuracy, avg_gamma)
 

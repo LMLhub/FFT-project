@@ -19,10 +19,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-from fft_project.cue_class import Cue
 from fft_project.decision_class import FFT
 from fft_project.experiment_class import Experiment
-from fft_project.cue_features import avoid_worst_n_ranks, growth_rate, expected_isoelastic_utility
 
 from fft_project.simulation_gamble_data import simulate_gamble_data
 from fft_project.create_cues_ffts import create_cues_ffts
@@ -96,7 +94,39 @@ def main():
     logging.info(f"Simulated gamble data with {len(df)} rows.")
     
     return df
+  
+  def create_and_run_additive_experiment(name):
+    # Additive
+    fft_names_a = FFT_NAMES_A.copy()
+    experiment_a = Experiment(id=name,
+                          name="Example Experiment",
+                          dynamic="additive",
+                          description="Experiment using the experimental gamble data.",
+                          gamble_data=gamble_data_additive,
+                          ffts=[FFT.FFT_registry[name] for name in fft_names_a]
+                          )
+    results_a = experiment_a.run_experiment(wealth_update="data", random_seed=42)  
+    fft_names_a.append("experiment_a")
+    results_a = pd.concat([results_a, experimental_results_additive], axis=1)  
+    return(fft_names_a, results_a, experiment_a)
 
+  def create_and_run_multiplicative_experiment(name):
+    #Multiplicative
+    fft_names_m = FFT_NAMES_M.copy()
+    experiment_m = Experiment(id=name,
+                          name="Example Experiment",
+                          dynamic="multiplicative",
+                          description="An example experiment using the simulated gamble data and the example FFT.",
+                          gamble_data=gamble_data_multiplicative,
+                          ffts=[FFT.FFT_registry[name] for name in fft_names_m]
+                          )
+  
+    results_m = experiment_m.run_experiment(wealth_update="data", random_seed=42)  
+    fft_names_m.append("experiment_m")
+    results_m = pd.concat([results_m, experimental_results_multiplicative], axis=1)
+    
+    return(fft_names_m, results_m, experiment_m)
+  
   ###########################################
 
   # Simulate gamble data
@@ -110,25 +140,41 @@ def main():
   gamble_data_additive, gamble_data_multiplicative = gamble_data
   experimental_results_additive, experimental_results_multiplicative = experimental_results
 
-  # Set up experiments
-  experiment_a = Experiment(id="exp2_a",
-                          name="Example Experiment",
-                          dynamic="additive",
-                          description="An example experiment using the simulated gamble data and the example FFT.",
-                          gamble_data=gamble_data_additive,
-                          ffts=[FFT.FFT_registry[name] for name in FFT_NAMES_A.copy()]
-                          )
+  #---------- Set up and run experiments ----------------------------
+  fft_names_a, results_a, experiment_a = create_and_run_additive_experiment("exp-a")
+  fft_names_m, results_m, experiment_m = create_and_run_multiplicative_experiment("exp-m")
     
-  results_a = experiment_a.run_experiment(wealth_update="data", random_seed=42)
-    
-  fft_names.append("experiment_a")
-  results_a = pd.concat([results_a, experimental_results_additive], axis=1)
-
   #----------------- Fig 4 --------------------------
+  
   # This code creates the eta profile plot
 
-
-
+  fig, ax = plt.subplots(1,2, figsize=(10,4))  
+  etas = np.linspace(-1,5,31)
+    
+  plot_etas_compare(
+      gamble_data_additive,
+      results_a,
+      fft_names_a,
+      etas,
+      "additive",
+      ax=ax[0],
+      runs=1,
+      random_seed=42,
+      )
+  
+  plot_etas_compare(
+      gamble_data_multiplicative,
+      results_m,
+      fft_names_m,
+      etas,
+      "multiplicative",
+      ax=ax[1],
+      runs=1,
+      random_seed=42,
+      )
+    
+  fig.savefig(f"{REMOTE_DRIVE}/{config['run_id']}/4-visualizations/fig4.png", dpi=300, bbox_inches="tight")
+  
   return 0
 
 
