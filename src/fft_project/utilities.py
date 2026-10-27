@@ -37,6 +37,15 @@ def Gini_impurity_partition(df, assigned_class_column_name, true_class_column_na
 
   return G_split
 
+def classification_accuracy(df, assigned_class_column_name, true_class_column_name, verbose=False):
+  N = len(df)
+  correct_classifications = len(df[df[assigned_class_column_name] == df[true_class_column_name]])
+  accuracy = correct_classifications / N
+  if verbose:
+    logger.info(f"Classification accuracy: {accuracy:.4f} ({correct_classifications}/{N} correct classifications)")
+  return accuracy
+
+
 def confusion_rates(df, assigned_class_column_name, true_class_column_name, target_class, verbose=False):
   N=len(df)
   TP = len(df[(df[assigned_class_column_name] == target_class) & (df[true_class_column_name] == target_class)])
