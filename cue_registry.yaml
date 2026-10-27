@@ -1,0 +1,310 @@
+gr:
+  id: gr
+  name: Maximising time-average growth rate
+  description: This cue compares the growth rates of the gambles and picks the side
+    with the highest time-average growth rate. Works for both additive and multiplicative
+    dynamics.
+  type: numerical
+  threshold: 0
+  params: {}
+  feature_name: growth_rate
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+gr_min:
+  id: gr_min
+  name: Minimising time-average growth rate
+  description: This cue compares the growth rates of the gambles and picks the side
+    with the lowest time-average growth rate. Works for both additive and multiplicative
+    dynamics.
+  type: numerical
+  threshold: 0
+  params: {}
+  feature_name: growth_rate_min
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+eu_1_5_a:
+  id: eu_1_5_a
+  name: Expected Isoelastic Utility - eta=1.5, additive
+  description: This cue that evaluates the expected isoelastic utility of the first
+    gamble with eta=1.5 and picks a side if the cue value is greater than 2.
+  type: numerical
+  threshold: 0
+  params:
+    dynamic: additive
+    eta: 1.5
+  feature_name: expected_isoelastic_utility
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+  - wealth
+eu_1_5_m:
+  id: eu_1_5_m
+  name: Expected Isoelastic Utility - eta=1.5, multiplicative
+  description: This cue that evaluates the expected isoelastic utility of the first
+    gamble with eta=1.5 and picks a side if the cue value is greater than 2.
+  type: numerical
+  threshold: 0
+  params:
+    dynamic: multiplicative
+    eta: 1.5
+  feature_name: expected_isoelastic_utility
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+  - wealth
+aw_1_a:
+  id: aw_1_a
+  name: Avoid worst 1 of all - additive
+  description: Prefers the gamble that does not contain the worst fractal value.
+  type: boolean
+  threshold: 0
+  params:
+    n: 1
+    fractal_values: &id001
+    - -407.0
+    - -305.5
+    - -241.0
+    - -144.5
+    - -49.0
+    - 108.5
+    - 210.0
+    - 309.5
+    - 440.0
+  feature_name: avoid_worst_n_ranks
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+aw_1_m:
+  id: aw_1_m
+  name: Avoid worst 1 of all - multiplicative
+  description: Prefers the gamble that does not contain the worst fractal value.
+  type: boolean
+  threshold: 0
+  params:
+    n: 1
+    fractal_values: &id002
+    - -0.8500000000000001
+    - -0.5395000000000001
+    - -0.4330000000000001
+    - -0.1735
+    - 0.006
+    - 0.1685
+    - 0.369
+    - 0.5535
+    - 0.772
+  feature_name: avoid_worst_n_ranks
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+aw_2_a:
+  id: aw_2_a
+  name: Avoid worst 2 of all - additive
+  description: Prefers the gamble that does not contain the two worst fractal values.
+  type: boolean
+  threshold: 0
+  params:
+    n: 2
+    fractal_values: *id001
+  feature_name: avoid_worst_n_ranks
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+aw_2_m:
+  id: aw_2_m
+  name: Avoid worst 2 of all - multiplicative
+  description: Prefers the gamble that does not contain the two worst fractal values.
+  type: boolean
+  threshold: 0
+  params:
+    n: 2
+    fractal_values: *id002
+  feature_name: avoid_worst_n_ranks
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+fs:
+  id: fs
+  name: Positive fractal signs
+  description: Give preference to the gamble with the most fractals that leads to
+    an increase in wealth
+  type: boolean
+  threshold: 0
+  params: {}
+  feature_name: signs
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+pb_1_a:
+  id: pb_1_a
+  name: Prefer best 1 of all - additive
+  description: Give preference to the gamble that has the best of all fractals
+  type: boolean
+  threshold: 0
+  params:
+    n: 1
+    fractal_values: *id001
+  feature_name: prefer_best_n_ranks
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+pb_1_m:
+  id: pb_1_m
+  name: Prefer best 1 of all - multiplicative
+  description: Give preference to the gamble that has the best of all fractals
+  type: boolean
+  threshold: 0
+  params:
+    n: 1
+    fractal_values: *id002
+  feature_name: prefer_best_n_ranks
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+pri_1_50_a:
+  id: pri_1_50_a
+  name: Minimum gains difference 50 percent (additive)
+  description: Give preference to the gamble with the highest minimum gains if the
+    minimum gains differs by 50 percent of the maximum gain
+  type: boolean
+  threshold: 0
+  params:
+    tol: 0.5
+    dynamic: additive
+  feature_name: priority_step1
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+pri_3_a:
+  id: pri_3_a
+  name: Maximum gains (additive)
+  description: Give preference to the gamble with the highest maximum gains.
+  type: boolean
+  threshold: 0
+  params:
+    dynamic: additive
+  feature_name: priority_step3
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+pri_1_35_m:
+  id: pri_1_35_m
+  name: Minimum gains difference 35 percent (multiplicative)
+  description: Give preference to the gamble with the highest minimum gains if the
+    minimum gains differs by 35 percent of the maximum gain
+  type: boolean
+  threshold: 0
+  params:
+    tol: 0.35
+    dynamic: multiplicative
+  feature_name: priority_step1
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+pri_3_m:
+  id: pri_3_m
+  name: Maximum gains (multiplicative)
+  description: Give preference to the gamble with the highest maximum gains.
+  type: boolean
+  threshold: 0
+  params:
+    dynamic: multiplicative
+  feature_name: priority_step3
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+pri_nl_1_40_a:
+  id: pri_nl_1_40_a
+  name: Variation No Loss of priority heuristic step 1 with 40 percent tolerance(additive)
+  description: Give preference to the gamble with the highest minimum gains if the
+    minimum gains differs by 40 percent of the maximum gain. Before evaluating, all
+    outcomes are moved such that they are positive
+  type: boolean
+  threshold: 0
+  params:
+    tol: 0.4
+    dynamic: additive
+  feature_name: priority_step1_no_loss
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+pri_nl_3_a:
+  id: pri_nl_3_a
+  name: Variation No Loss of step 3 of the priority heuristic (additive)
+  description: Give preference to the gamble with the highest maximum gains. Before
+    evaluating, all outcomes are moved such that they are positive
+  type: boolean
+  threshold: 0
+  params:
+    dynamic: additive
+  feature_name: priority_step3_no_loss
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+pri_nl_1_20_m:
+  id: pri_nl_1_20_m
+  name: Variation No Loss of priority heuristic step 1 with 20 percent tolerance (multiplicative)
+  description: Give preference to the gamble with the highest minimum gains if the
+    minimum gains differs by 20 percent of the maximum gain. Before evaluating, all
+    outcomes are moved such that they are positive
+  type: boolean
+  threshold: 0
+  params:
+    tol: 0.2
+    dynamic: multiplicative
+  feature_name: priority_step1_no_loss
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down
+pri_nl_3_m:
+  id: pri_nl_3_m
+  name: Variation No Loss of step 3 of the priority heuristic (multiplicative)
+  description: Give preference to the gamble with the highest maximum gains. Before
+    evaluating, all outcomes are moved such that they are positive
+  type: boolean
+  threshold: 0
+  params:
+    dynamic: multiplicative
+  feature_name: priority_step3_no_loss
+  required arguments:
+  - gamma_left_up
+  - gamma_left_down
+  - gamma_right_up
+  - gamma_right_down

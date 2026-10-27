@@ -12,12 +12,22 @@ from fft_project.cue_features import expected_isoelastic_utility
 from fft_project.simulation_gamble_data import simulate_gamble_data
 from fft_project.create_cues_ffts import create_cues2
 from fft_project.cue_class import Cue
-from fft_project.utilities import confusion_rates, Gini_impurity_partition
+from fft_project.utilities import confusion_rates, classification_accuracy, Gini_impurity_partition
 
 
 import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
+
+def decide_using_single_cue():
+
+  return 0
+
+def find_non_dominated_cues():
+  return 0
+
+def calculate_potential_splits():
+  return 0
 
 def main():
   # Parse command-line arguments
@@ -94,6 +104,7 @@ def main():
   for (id, cue) in complement_cues.items():
     all_cues[id] = cue
 
+
   # Choose preferred gamble using each cue in isolation. When we use a single
   # cue in isolation, it might be absent for a given pair of gambles or might
   # not be above threshold. When this happens, preference is assigned randomly.
@@ -165,10 +176,15 @@ def main():
     evaluation.loc[id, "TPR"] = TPR
     evaluation.loc[id, "FPR"] = FPR
 
+
     # Gini purity of instances that were not classified randomly
     nonrandom_df = gamble_data[gamble_data[f"{id}_random"] == False]
     Gini_purity = 1 - Gini_impurity_partition(nonrandom_df, f"{id}_choice", "GR-max_choice", [1, -1], verbose=False)
     evaluation.loc[id, "purity"] = Gini_purity
+
+    # Accuracy of the instances that were not classified randomly
+    accuracy = classification_accuracy(nonrandom_df, f"{id}_choice", "GR-max_choice", verbose=False)
+    evaluation.loc[id, "accuracy"] = accuracy
 
   print(evaluation)
 
@@ -225,6 +241,26 @@ def main():
   fig.savefig(Path(REMOTE_DRIVE) / Path(f"{config['run_id']}/4-visualizations/Gini_purity_vs_nonrandom_{dynamic}.png"))
   plt.show()  # This remains the same as it is a global function to display the
 
+  # Plot classification accuracy vs non-random proportion for the predictive cues
+  fig, ax = plt.subplots(figsize=(6, 6))
+  ax.scatter(predictive_cues["non-random"], predictive_cues["accuracy"], color='blue', label='Predictive Cues')
+  # Label each point with the cue id (DataFrame index)
+  for cue_id, row in predictive_cues.iterrows():
+    ax.annotate(
+        str(cue_id),
+        (row["non-random"], row["accuracy"]),
+        textcoords="offset points",
+        xytext=(5, 5),   # slight offset so text is not on top of marker
+        fontsize=8
+    )
+  ax.set_xlim(0, 1.25)
+  ax.set_ylim(0, 1.25)
+  ax.set_xlabel("Proportion of Non-Random Choices")
+  ax.set_ylabel("Classification Accuracy")
+  ax.set_title("Classification Accuracy vs Non-Random Proportion for Cues")
+  ax.legend()
+  fig.savefig(Path(REMOTE_DRIVE) / Path(f"{config['run_id']}/4-visualizations/accuracy_vs_nonrandom_{dynamic}.png"))
+  plt.show()
   return 0
 
 if __name__ == "__main__":
