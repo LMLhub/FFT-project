@@ -72,9 +72,9 @@ $$
 
 Each residual dataset will be represented by a Boolean mask of length $N$.
 
-### Feature performance
+### Decision rule (cue) performance
 
-For a candidate rule $j$ evaluated on residual dataset $S$, define:
+For a candidate cue-based decision rule $j$ evaluated on residual dataset $S$, define:
 
 | Metric | Definition |
 |---|---|
@@ -234,7 +234,7 @@ The fallback will be handled separately from the ordinary sequence, so its contr
 ## 6. Code architecture
 
 The implementation will be divided into five modules which will be
-located in ```src/FFT_project/sequential_decision_rules```:
+located in ```src/fft_project/sequential_decision_rules```:
 
 | Module | Responsibility |
 |---|---|
