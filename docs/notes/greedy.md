@@ -10,9 +10,9 @@ We have:
 - $M$ fixed cue-based decision rules, each of which can output $A$, $B$, or abstain for any choice instance $(A, B)$. The implementation of cue-based decision rules ensures symmetry with respect to $ A \leftrightarrow B$.
 - A maximum sequence length $K$, initially expected to be 3 or 4.
 
-Our objective is to identify sequences of rules that achieve a desirable balance between classification accuracy and coverage.
+Our objective is to identify sequences of rules that achieve a desirable balance between decision accuracy and coverage.
 
-Individual rules may be highly accurate but classify relatively few instances, while others may classify many instances less accurately. Rather than selecting rules greedily according to a single performance metric, we propose a **heuristic search based on local Pareto optimality in the accuracy–coverage plane**.
+Individual rules may be highly accurate but choose for relatively few instances, while others may choose for many instances less accurately. Rather than selecting rules greedily according to a single performance metric, we propose a **heuristic search based on local Pareto optimality in the accuracy–coverage plane**.
 
 
 
@@ -52,13 +52,13 @@ $$
 \sigma=(j_1,j_2,\ldots,j_k),\qquad k\leq K.
 $$
 
-The rules are applied sequentially. The **first rule that does not abstain** determines the final classification of an instance. If every rule abstains, the instance remains unclassified.
+The rules are applied sequentially. The **first rule that does not abstain** determines the final choice for an instance. If every rule abstains, the instance remains undecided.
 
 Unlike a conventional FFT, only the abstention branch continues. The structure can also be called a **decision list**, **rule cascade**, or **sequential decision tree with abstention**.
 
 ### Residual dataset
 
-At stage $k$, the **residual dataset** $S_k$ contains the instances not classified by any preceding rule. Initially,
+At stage $k$, the **residual dataset** $S_k$ contains the instances not decided by any preceding rule. Initially,
 
 $$
 S_1=\{1,\ldots,N\}.
@@ -100,7 +100,7 @@ with at least one strict inequality.
 
 The set of all such rules is the **local Pareto frontier**. It is recomputed for each search state because the residual datasets differ across branches.
 
-Pareto selection is a **heuristic search-space reduction**. Local dominance does not imply global dominance: rules with apparently inferior immediate accuracy and coverage may leave residual instances that subsequent rules classify more effectively.
+Pareto selection is a **heuristic search-space reduction**. Local dominance does not imply global dominance: rules with apparently inferior immediate accuracy and coverage may leave residual instances that subsequent rules decide upon more effectively.
 
 ## 3. Proposed search algorithm
 
@@ -131,7 +131,7 @@ Procedure:
 3. Identify the local Pareto frontier.
 4. Create a new search state for each rule on that frontier.
 5. Update its residual mask and cumulative correct/incorrect counts.
-6. Repeat until maximum depth $K$, no instances remain, or no further useful classifications are possible.
+6. Repeat until maximum depth $K$, no instances remain, or no further useful choices are possible.
 7. Evaluate and rank the generated sequences.
 
 Candidate sequences are retained at **every depth**, not only depth $K$. Initially, each rule may appear at most once in a sequence.
@@ -166,7 +166,7 @@ class SearchState:
     incorrect: int = 0
 ```
 
-The state records the selected sequence, the residual dataset, and cumulative performance. The number of unclassified instances is `remaining.sum()`.
+The state records the selected sequence, the residual dataset, and cumulative performance. The number of undecided instances is `remaining.sum()`.
 
 Search states will be treated as **immutable snapshots**: extending a sequence creates a new mask rather than modifying an existing mask in place.
 
@@ -174,8 +174,8 @@ Search states will be treated as **immutable snapshots**: extending a sequence c
 
 The core operation, `extend_state(state, feature, dataset)`, will:
 
-1. Identify remaining instances classified by the chosen rule.
-2. Count its correct and incorrect classifications.
+1. Identify remaining instances undecided by the chosen rule.
+2. Count its correct and incorrect choices.
 3. Add those counts to the cumulative totals.
 4. Create a new Boolean residual mask.
 5. Return a new search state.
@@ -185,9 +185,9 @@ For example:
 ```python
 def extend_state(state: SearchState, feature: int, dataset: Dataset) -> SearchState:
     predictions = dataset.predictions[:, feature]
-    classified = state.remaining & (predictions != -1)
-    correct = np.count_nonzero(classified & (predictions == dataset.labels))
-    incorrect = np.count_nonzero(classified) - correct
+    decided = state.remaining & (predictions != -1)
+    correct = np.count_nonzero(decideded & (predictions == dataset.labels))
+    incorrect = np.count_nonzero(decided) - correct
 
     return SearchState(
         sequence=state.sequence + (feature,),
@@ -201,7 +201,7 @@ The transition function does not need to know anything about Pareto selection or
 
 ## 5. Global sequence evaluation
 
-For a sequence $\sigma$, let $C(\sigma)$, $E(\sigma)$, and $U(\sigma)$ be the numbers of correct, incorrect, and unclassified instances. Then
+For a sequence $\sigma$, let $C(\sigma)$, $E(\sigma)$, and $U(\sigma)$ be the numbers of correct, incorrect, and undecided instances. Then
 
 $$
 C(\sigma)+E(\sigma)+U(\sigma)=N.
@@ -215,11 +215,11 @@ $$
 
 where $\lambda$ and $\mu$ specify penalties for errors and abstentions. The exact objective is not yet fixed.
 
-We will store raw classification counts independently of the scoring function so that alternative objectives can be compared **without rerunning the search**.
+We will store raw decision counts independently of the scoring function so that alternative objectives can be compared **without rerunning the search**.
 
 ### Optional terminal rule
 
-We may append a special fallback rule that never abstains. An unbiased random binary assignment would classify all remaining instances with expected accuracy $1/2$. Thus,
+We may append a special fallback rule that never abstains. An unbiased random binary assignment would decide on all remaining instances with expected accuracy $1/2$. Thus,
 
 $$
 \mathbb{E}[C_{\mathrm{final}}]=C(\sigma)+\frac{U(\sigma)}{2},
