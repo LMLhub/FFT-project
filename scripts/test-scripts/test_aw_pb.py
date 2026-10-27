@@ -21,16 +21,20 @@ def test_feature_function():
     #Tests that g2 values do not affect the result.
     
     # no worst or best fractal values present in g1
-    assert avoid_worst_or_prefer_best(50.0, 108.5, -407.0, -305.5, random_choice = 0,fractal_values=FRACTAL_VALUES) == 0
+    # Avoid the worst teturns True if neither g1_up nor g1_down is among the n worst fractal values.
+    assert avoid_worst_or_prefer_best(50.0, 108.5, -407.0, -305.5, random_choice = 0, fractal_values=FRACTAL_VALUES) == True
 
     # g1 contains the worst fractal value
-    assert avoid_worst_or_prefer_best(-407.0, 108.5, 50.0, 309.5, random_choice = 0, fractal_values=FRACTAL_VALUES) == -1
+    # Avoid the worst teturns False if either g1_up nor g1_down is among the n worst fractal values.
+    assert avoid_worst_or_prefer_best(-407.0, 108.5, 50.0, 309.5, random_choice = 0, fractal_values=FRACTAL_VALUES) == False
 
     # g1 contains the best fractal value
-    assert avoid_worst_or_prefer_best(440.5, -305.5, 50.0, 309.5, random_choice = 0, fractal_values=FRACTAL_VALUES) == 1
+    # Prefer the best returns true if either g1_up nor g1_down is among the n best fractal values
+    assert avoid_worst_or_prefer_best(440.5, -305.5, 50.0, 309.5, random_choice = 1, fractal_values=FRACTAL_VALUES) == True
 
     # g1 contains both the worst and best fractal values
-    assert avoid_worst_or_prefer_best(440.5, -407.0, 50.0, 309.5, random_choice = 0, fractal_values=FRACTAL_VALUES) == 0
+    # Prefer the best returns true if either g1_up nor g1_down is among the n best fractal values
+    assert avoid_worst_or_prefer_best(440.5, -407.0, 50.0, 309.5, random_choice = 1, fractal_values=FRACTAL_VALUES) == True
 
     print("feature function: all tests passed.")
 
@@ -49,28 +53,34 @@ def test_cue_evaluate():
         threshold   = 0,
         params      = {},
         required_args = ["gamma_left_up", "gamma_left_down",
-                                 "gamma_right_up", "gamma_right_down", "fractal_values"]
+                                 "gamma_right_up", "gamma_right_down", "random_choice", "fractal_values"]
         )
     
-    val, side = cue.evaluate(50.0, 108.5, -407.0, -305.5, fractal_values=FRACTAL_VALUES)
+    val, side = cue.evaluate(50.0, 108.5, -407.0, -305.5, random_choice = 0, fractal_values=FRACTAL_VALUES)
     assert side == "left"
 
-    val, side = cue.evaluate(-407.0, 108.5, 50.0, 309.5, fractal_values=FRACTAL_VALUES)
+    val, side = cue.evaluate(-407.0, 108.5, 50.0, 309.5, random_choice = 0, fractal_values=FRACTAL_VALUES)
     assert side == "right"
 
-    val, side = cue.evaluate(50.0, 108.5, 309.5, 440.5, fractal_values=FRACTAL_VALUES)
+    val, side = cue.evaluate(50.0, 108.5, 309.5, 440.5, random_choice = 1, fractal_values=FRACTAL_VALUES)
     assert side == "right"
 
-    val, side = cue.evaluate(50.0, 440.5, 108.5, 309.5, fractal_values=FRACTAL_VALUES)
+    val, side = cue.evaluate(50.0, 440.5, 108.5, 309.5, random_choice =1, fractal_values=FRACTAL_VALUES)
     assert side == "left"
 
-    val, side = cue.evaluate(-407.0, 440.5, 108.5, 309.5, fractal_values=FRACTAL_VALUES)
-    assert side is None
+    val, side = cue.evaluate(-407.0, 440.5, 108.5, 309.5, random_choice = 0, fractal_values=FRACTAL_VALUES)
+    assert side == "right"
+
+    val, side = cue.evaluate(-407.0, 440.5, 108.5, 309.5, random_choice = 1, fractal_values=FRACTAL_VALUES)
+    assert side == "left"
     
-    val, side = cue.evaluate(108.5, 309.5,-407.0, 440.5, fractal_values=FRACTAL_VALUES)
+    val, side = cue.evaluate(108.5, 309.5,-407.0, 440.5, random_choice = 1, fractal_values=FRACTAL_VALUES)
+    assert side == "right"
+
+    val, side = cue.evaluate( -241.5, 108.5, -49.0, 50.0, random_choice= 0, fractal_values=FRACTAL_VALUES)
     assert side is None
 
-    val, side = cue.evaluate( -241.5, 108.5, -49.0, 50.0, fractal_values=FRACTAL_VALUES)
+    val, side = cue.evaluate( -241.5, 108.5, -49.0, 50.0, random_choice= 1, fractal_values=FRACTAL_VALUES)
     assert side is None
 
     print("Cue.evaluate: all tests passed.")
@@ -85,35 +95,35 @@ def test_fft():
               cues=[cue])
     
     # Test fft when worst fractal value is present in right gamble
-    cue_values, side, i = fft.decide(50.0, 108.5, -407.0, -305.5, fractal_values=FRACTAL_VALUES)
+    cue_values, side, i = fft.decide(50.0, 108.5, -407.0, -305.5, random_choice=0, fractal_values=FRACTAL_VALUES)
     assert side == "left"
     assert i == 1
 
     # Test fft when worst fractal value is present in left gamble
-    cue_values, side, i = fft.decide(50.0, -407.0, 108.5, -305.5, fractal_values=FRACTAL_VALUES)
+    cue_values, side, i = fft.decide(50.0, -407.0, 108.5, -305.5, random_choice=0, fractal_values=FRACTAL_VALUES)
     assert side == "right"
     assert i == 1
 
     # Test fft when best fractal value is present in right gamble
-    cue_values, side, i = fft.decide(50.0, 108.5, 440.5, -305.5, fractal_values=FRACTAL_VALUES)
+    cue_values, side, i = fft.decide(50.0, 108.5, 440.5, -305.5, random_choice=1, fractal_values=FRACTAL_VALUES)
     assert side == "right"
     assert i == 1
 
     # Test fft when worst fractal value is present in left gamble
-    cue_values, side, i = fft.decide(50.0, 440.5, 108.5, -305.5, fractal_values=FRACTAL_VALUES)
+    cue_values, side, i = fft.decide(50.0, 440.5, 108.5, -305.5, random_choice=1, fractal_values=FRACTAL_VALUES)
     assert side == "left"
     assert i == 1
 
-    # Test fft when worst and best fractal values are present
-    cue_values, side, i = fft.decide( 440.5, -407.0, 108.5, -305.5, fractal_values=FRACTAL_VALUES)
+    # Test fft when neither worst nor best fractal values are present
+    cue_values, side, i = fft.decide( 50.0, 108.5, 108.5, -305.5, random_choice = 0, fractal_values=FRACTAL_VALUES)
     assert i == 2
 
     # Test fft when neither worst nor best fractal values are present
-    cue_values, side, i = fft.decide( 50.0, 108.5, 108.5, -305.5, fractal_values=FRACTAL_VALUES)
+    cue_values, side, i = fft.decide( 50.0, 108.5, 108.5, -305.5, random_choice = 1, fractal_values=FRACTAL_VALUES)
     assert i == 2
 
     # Test fft when best and worst is on opposite sides
-    cue_values, side, i = fft.decide( -305.5, 440.5, -407.0, 50.0, fractal_values=FRACTAL_VALUES)
+    cue_values, side, i = fft.decide( -305.5, 440.5, -407.0, 50.0, random_choice = 1, fractal_values=FRACTAL_VALUES)
     assert side == "left"
     assert i == 1
 
