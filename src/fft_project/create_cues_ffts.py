@@ -450,7 +450,7 @@ def create_cues():
         threshold   = 0,
         params      = {},
         required_args = ["gamma_left_up", "gamma_left_down",
-                                    "gamma_right_up", "gamma_right_down", "fractal_values", "tol_relative"]
+                                    "gamma_right_up", "gamma_right_down", "fractal_values", "dynamic", "tol_relative"]
         )
 
     Cue(
@@ -462,7 +462,7 @@ def create_cues():
         threshold   = 0,
         params      = {},
         required_args = ["gamma_left_up", "gamma_left_down",
-                                    "gamma_right_up", "gamma_right_down", "fractal_values"]
+                                    "gamma_right_up", "gamma_right_down", "fractal_values", "dynamic"]
         )
 
     Cue(

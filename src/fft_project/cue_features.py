@@ -322,7 +322,7 @@ def ph_simple_3(g1_up, g1_down, g2_up, g2_down):
     else:
         return False
 
-def ph_rank_1(g1_up, g1_down, g2_up, g2_down, fractal_values, tol_relative = 2):
+def ph_rank_1(g1_up, g1_down, g2_up, g2_down, fractal_values, dynamic, tol_relative = 2):
     # This function is to be used for the first step of the priority heuristics
     # as suggested by the 2008 paper. It is asymmetrical, which means that losses and gains
     # are treated differently (risk seeking for losses and risk aversion for gains).
@@ -350,11 +350,18 @@ def ph_rank_1(g1_up, g1_down, g2_up, g2_down, fractal_values, tol_relative = 2):
 
     # Calculate when the the sign should be reversed
     last_index = -1
-
-    for i in range(len(fractal_values)):
-        if fractal_values[i] < 0:
-            last_index = i
-
+    if dynamic == "additive":
+        for i in range(len(fractal_values)):
+            if fractal_values[i] < 0:
+                last_index = i
+    elif dynamic == "multiplicative":
+        for i in range(len(fractal_values)):
+            if fractal_values[i] < 1:
+                last_index = i
+    else:
+        logger.error(f"Dynamic for ph_rank_1 must be either multiplicative or additive.")
+        raise ValueError(f"Dynamic for ph_rank_1 must be either multiplicative or additive.")
+        
     sign_switch_index = last_index + 0.5
 
     #Check if the average outcome is negative, if so, switch signs of all values
@@ -392,7 +399,7 @@ def ph_rank_1(g1_up, g1_down, g2_up, g2_down, fractal_values, tol_relative = 2):
 
     return False
 
-def ph_rank_3(g1_up, g1_down, g2_up, g2_down, fractal_values):
+def ph_rank_3(g1_up, g1_down, g2_up, g2_down, fractal_values, dynamic):
     # This is the feature function for the rank-based priority heuristic.
     # It is similar to ph_3, but it uses rank based values.
     
@@ -412,11 +419,18 @@ def ph_rank_3(g1_up, g1_down, g2_up, g2_down, fractal_values):
 
     # Calculate when the the sign should be reversed
     last_index = -1
-
-    for i in range(len(fractal_values)):
-        if fractal_values[i] < 0:
-            last_index = i
-
+    if dynamic == "additive":
+        for i in range(len(fractal_values)):
+            if fractal_values[i] < 0:
+                last_index = i
+    elif dynamic == "multiplicative":
+        for i in range(len(fractal_values)):
+            if fractal_values[i] < 1:
+                last_index = i
+    else:
+        logger.error(f"Dynamic for ph_rank_3 must be either multiplicative or additive.")
+        raise ValueError(f"Dynamic for ph_rank_3 must be either multiplicative or additive.")
+        
     sign_switch_index = last_index + 0.5
 
     # determine if the average rank is less than half of the number of fractals,
