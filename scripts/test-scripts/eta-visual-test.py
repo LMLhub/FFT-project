@@ -51,8 +51,7 @@ def test():
 
     # Evaluate the experiment
     results = experiment.run_experiment(wealth_update="constant", random_seed=42)
-    results = experiment.run_experiment(wealth_update="constant", random_seed=43)
-
+    
     print("Accuracy fs vs gr:",experiment.accuracy("fft_fs", "fft_gr"))
     print("Accuracy aw_1 vs gr:",experiment.accuracy("fft_aw_1_a", "fft_gr"))
     print("Accuracy aw_2 vs gr:",experiment.accuracy("fft_aw_2_a", "fft_gr"))
@@ -72,8 +71,11 @@ def plot_gamma_match():
 
     gamble_data_additive["fractal_values"] = [FRACTAL_VALUES.copy() for _ in range(len(gamble_data_additive))]
     gamble_data_additive["tol_relative"] = 2
+    gamble_data_additive["dynamic"] = "additive"
+        
     gamble_data_multiplicative["fractal_values"] = [FRACTAL_VALUES_MULTI.copy() for _ in range(len(gamble_data_multiplicative))]
     gamble_data_multiplicative["tol_relative"] = 2
+    gamble_data_multiplicative["dynamic"] = "multiplicative"
 
     #print(experimental_results_additive.head())
     #print("Gamble Data:")
@@ -89,7 +91,7 @@ def plot_gamma_match():
                             gamble_data=gamble_data_additive,
                             ffts=[FFT.FFT_registry[name] for name in fft_names]
     )
-
+    
     results_a = experiment_a.run_experiment(wealth_update="data", random_seed=42)
     
     fft_names.append("experiment_a")
@@ -123,7 +125,7 @@ def plot_gamma_match():
     )
 
     results_m = experiment_m.run_experiment(wealth_update="data", random_seed=42)
-    
+    print("done with multiplicative")
     fft_names.append("experiment_m")
     results_m = pd.concat([results_m, experimental_results_multiplicative], axis=1)
 
@@ -153,8 +155,11 @@ def plot_growth_rate_match():
     
     gamble_data_additive["fractal_values"] = [FRACTAL_VALUES.copy() for _ in range(len(gamble_data_additive))]
     gamble_data_additive["tol_relative"] = 2
+    gamble_data_additive["dynamic"] = "additive"
+        
     gamble_data_multiplicative["fractal_values"] = [FRACTAL_VALUES_MULTI.copy() for _ in range(len(gamble_data_multiplicative))]
     gamble_data_multiplicative["tol_relative"] = 2
+    gamble_data_multiplicative["dynamic"] = "multiplicative"
 
     experiment_a = Experiment(id="exp3_a",
                             name="Example Experiment",
@@ -202,8 +207,11 @@ def plot_experiment_match():
 
     gamble_data_additive["fractal_values"] = [FRACTAL_VALUES.copy() for _ in range(len(gamble_data_additive))]
     gamble_data_additive["tol_relative"] = 2
+    gamble_data_additive["dynamic"] = "additive"
+        
     gamble_data_multiplicative["fractal_values"] = [FRACTAL_VALUES_MULTI.copy() for _ in range(len(gamble_data_multiplicative))]
     gamble_data_multiplicative["tol_relative"] = 2
+    gamble_data_multiplicative["dynamic"] = "multiplicative"
 
     fig, ax = plt.subplots(1,2, figsize=(10,4))    
     
