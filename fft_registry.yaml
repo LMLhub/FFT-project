@@ -1,0 +1,208 @@
+fft_aw_1_a:
+  id: fft_aw_1_a
+  name: Avoid the worst
+  description: An example FFT avoid the worst - additive.
+  cues:
+  - id: aw_1_a
+    name: Avoid worst 1 of all - additive
+  tree length: 1
+fft_aw_1_m:
+  id: fft_aw_1_m
+  name: Avoid the worst
+  description: An example FFT with avoid the worst cue - multiplicative.
+  cues:
+  - id: aw_1_m
+    name: Avoid worst 1 of all - multiplicative
+  tree length: 1
+fft_gr:
+  id: fft_gr
+  name: Growth rate maximisation
+  description: FFT with the growth rate cue
+  cues:
+  - id: gr
+    name: Maximising time-average growth rate
+  tree length: 1
+fft_eu_1_5_a:
+  id: fft_eu_1_5_a
+  name: Expected Isoelastic Utility - eta=1.5
+  description: An example FFT with the expected isoelastic utility cue - additive.
+  cues:
+  - id: eu_1_5_a
+    name: Expected Isoelastic Utility - eta=1.5, additive
+  tree length: 1
+fft_eu_1_5_m:
+  id: fft_eu_1_5_m
+  name: Expected Isoelastic Utility - eta=1.5
+  description: An example FFT with the expected isoelastic utility cue - multiplicative.
+  cues:
+  - id: eu_1_5_m
+    name: Expected Isoelastic Utility - eta=1.5, multiplicative
+  tree length: 1
+fft_aw_2_a:
+  id: fft_aw_2_a
+  name: Avoid the two worst
+  description: An example FFT with the avoid the worst cue.
+  cues:
+  - id: aw_2_a
+    name: Avoid worst 2 of all - additive
+  tree length: 1
+fft_aw_2_m:
+  id: fft_aw_2_m
+  name: Avoid the two worst
+  description: An example FFT with the avoid the worst cue - multiplicative
+  cues:
+  - id: aw_2_m
+    name: Avoid worst 2 of all - multiplicative
+  tree length: 1
+fft_fs:
+  id: fft_fs
+  name: Positive fractal signs
+  description: FFT with the positive fractal signs cue. Works for both dynamics.
+  cues:
+  - id: fs
+    name: Positive fractal signs
+  tree length: 1
+fft_aw_1_fs_a:
+  id: fft_aw_1_fs_a
+  name: Avoid the worst then positive fractal signs
+  description: FFT with the avoid the worst first, then choose based on positive fractal
+    signs. Additive dynamic.
+  cues:
+  - id: aw_1_a
+    name: Avoid worst 1 of all - additive
+  - id: fs
+    name: Positive fractal signs
+  tree length: 2
+fft_fs_aw_1_a:
+  id: fft_fs_aw_1_a
+  name: Positive fractal signs then avoid the worst
+  description: FFT with positive fractal signs then the avoid the worst first. Additive
+    dynamic.
+  cues:
+  - id: fs
+    name: Positive fractal signs
+  - id: aw_1_a
+    name: Avoid worst 1 of all - additive
+  tree length: 2
+fft_pb_1_a:
+  id: fft_pb_1_a
+  name: Prefer the best
+  description: FFT that prefers the best if present. Additive dynamic.
+  cues:
+  - id: pb_1_a
+    name: Prefer best 1 of all - additive
+  tree length: 1
+fft_aw_1_pb_1_a:
+  id: fft_aw_1_pb_1_a
+  name: Avoid the worst then prefer the best
+  description: FFT with avoid the worst then prefer the best. Additive dynamic.
+  cues:
+  - id: aw_1_a
+    name: Avoid worst 1 of all - additive
+  - id: pb_1_a
+    name: Prefer best 1 of all - additive
+  tree length: 2
+fft_pb_1_aw_1_a:
+  id: fft_pb_1_aw_1_a
+  name: Avoid the worst then prefer the best
+  description: FFT with avoid the worst then prefer the best. Additive dynamic.
+  cues:
+  - id: pb_1_a
+    name: Prefer best 1 of all - additive
+  - id: aw_1_a
+    name: Avoid worst 1 of all - additive
+  tree length: 2
+fft_pb_1_m:
+  id: fft_pb_1_m
+  name: Prefer the best
+  description: FFT that prefers the best if present. Additive dynamic.
+  cues:
+  - id: pb_1_m
+    name: Prefer best 1 of all - multiplicative
+  tree length: 1
+fft_aw_1_pb_1_m:
+  id: fft_aw_1_pb_1_m
+  name: Avoid the worst then prefer the best
+  description: FFT with avoid the worst then prefer the best. Additive dynamic.
+  cues:
+  - id: aw_1_m
+    name: Avoid worst 1 of all - multiplicative
+  - id: pb_1_m
+    name: Prefer best 1 of all - multiplicative
+  tree length: 2
+fft_pb_1_aw_1_m:
+  id: fft_pb_1_aw_1_m
+  name: Avoid the worst then prefer the best
+  description: FFT with avoid the worst then prefer the best. Additive dynamic.
+  cues:
+  - id: pb_1_m
+    name: Prefer best 1 of all - multiplicative
+  - id: aw_1_m
+    name: Avoid worst 1 of all - multiplicative
+  tree length: 2
+fft_fs_aw_1_m:
+  id: fft_fs_aw_1_m
+  name: Positive fractal signs then avoid the worst
+  description: FFT with positive fractal signs then the avoid the worst first. Additive
+    dynamic.
+  cues:
+  - id: fs
+    name: Positive fractal signs
+  - id: aw_1_m
+    name: Avoid worst 1 of all - multiplicative
+  tree length: 2
+pri_a:
+  id: pri_a
+  name: Priority heuristic
+  description: "The priority heuristic as described by Brandst\xE4tter, Gigerenzer,\
+    \ and Hertwig (2006). For additive dynamics"
+  cues:
+  - id: pri_1_50_a
+    name: Minimum gains difference 50 percent (additive)
+  - id: pri_3_a
+    name: Maximum gains (additive)
+  tree length: 2
+pri_m:
+  id: pri_m
+  name: Priority heuristic
+  description: "The priority heuristic as described by Brandst\xE4tter, Gigerenzer,\
+    \ and Hertwig (2006) but with different tolerance. For multiplicative dynamics"
+  cues:
+  - id: pri_1_35_m
+    name: Minimum gains difference 35 percent (multiplicative)
+  - id: pri_3_m
+    name: Maximum gains (multiplicative)
+  tree length: 2
+pri_nl_a:
+  id: pri_nl_a
+  name: Priority heuristic (no loss)
+  description: "The priority heuristic as described by Brandst\xE4tter, Gigerenzer,\
+    \ and Hertwig (2006) without the loss option and with different tolerance. For\
+    \ additive dynamics"
+  cues:
+  - id: pri_nl_1_40_a
+    name: Variation No Loss of priority heuristic step 1 with 40 percent tolerance(additive)
+  - id: pri_nl_3_a
+    name: Variation No Loss of step 3 of the priority heuristic (additive)
+  tree length: 2
+pri_nl_m:
+  id: pri_nl_m
+  name: Priority heuristic (no loss)
+  description: "The priority heuristic as described by Brandst\xE4tter, Gigerenzer,\
+    \ and Hertwig (2006) without the loss option and with different tolerance. For\
+    \ multiplicative dynamics"
+  cues:
+  - id: pri_nl_1_20_m
+    name: Variation No Loss of priority heuristic step 1 with 20 percent tolerance
+      (multiplicative)
+  - id: pri_nl_3_m
+    name: Variation No Loss of step 3 of the priority heuristic (multiplicative)
+  tree length: 2
+fft_gr_min:
+  id: fft_gr_min
+  name: Growth rate minimisation
+  description: This fft chooses the opposite of the growth rate maximisation
+  cues:
+  - id: gr_min
+    name: Minimising time-average growth rate
+  tree length: 1
