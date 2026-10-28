@@ -22,6 +22,7 @@ def parse_args():
                         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
                         help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
     parser.add_argument("--run-id", type=str, default=None, help="Unique identifier for this run (defaults to a timestamp)")
+    parser.add_argument("--figs", type=str, default=None, help="Determines which figure will be produced in workstream 1")
     return parser.parse_args()
 
 def read_config_file(config_path):

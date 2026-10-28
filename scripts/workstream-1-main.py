@@ -25,7 +25,8 @@ from fft_project.experiment_class import Experiment
 from fft_project.simulation_gamble_data import simulate_gamble_data
 from fft_project.create_cues_ffts import create_cues_ffts
 from fft_project.prepare_experimental_data import prepare_experimental_data
-from fft_project.analysis_compare import plot_etas_compare, plot_accuracy_gamma_scatter
+from fft_project.analysis_compare import plot_etas_compare, plot_participant_accuracy_comparison
+
 
 def main():
   """
@@ -55,6 +56,29 @@ def main():
 
   # Save config file to the run's input folder
   save_config(args.config, REMOTE_DRIVE, config["run_id"])
+
+  # Save list of plots to be produced
+  fig2 = False
+  fig3 = False
+  fig4 = False
+  
+  if args.figs is None:
+    fig2 = True
+    fig3 = True
+    fig4 = True
+
+  else:
+    allowed_figs = {"2", "3", "4"}
+    invalid = set(args.figs) - allowed_figs
+    if invalid:
+      raise ValueError(f"Invalid values: {invalid}, must be either 2, 3, or 4")
+    
+    if args.figs == "2":
+      fig2 = True
+    if args.figs == "3":
+      fig3 = True
+    if args.figs == "4":
+      fig4 = True
 
   # Load gamble data
   GAMBLE_SIMULATION_CONFIG = config["gamble_simulation"]
@@ -107,7 +131,10 @@ def main():
                           )
     results_a = experiment_a.run_experiment(wealth_update="data", random_seed=42)  
     fft_names_a.append("experiment_a")
-    results_a = pd.concat([results_a, experimental_results_additive], axis=1)  
+    results_a = pd.concat([results_a, experimental_results_additive], axis=1) 
+    
+    logging.info(f"Additive experiment generated") 
+    
     return(fft_names_a, results_a, experiment_a)
 
   def create_and_run_multiplicative_experiment(name):
@@ -125,6 +152,8 @@ def main():
     fft_names_m.append("experiment_m")
     results_m = pd.concat([results_m, experimental_results_multiplicative], axis=1)
     
+    logging.info(f"Multiplicative experiment generated") 
+        
     return(fft_names_m, results_m, experiment_m)
   
   ###########################################
@@ -143,38 +172,49 @@ def main():
   #---------- Set up and run experiments ----------------------------
   fft_names_a, results_a, experiment_a = create_and_run_additive_experiment("exp-a")
   fft_names_m, results_m, experiment_m = create_and_run_multiplicative_experiment("exp-m")
+
+  #----------------- Fig 2 --------------------------
+  # This code plots accuracy against choices vs accuracy against growth rate optimality
+  if fig2 == True:
+    logging.info(f"Figure 2 in process...") 
+        
+    plot_participant_accuracy_comparison()
     
   #----------------- Fig 4 --------------------------
   
   # This code creates the eta profile plot
+  if fig4 == True:
+    logging.info(f"Figure 4 in process...") 
+        
+    fig, ax = plt.subplots(1,2, figsize=(10,4))  
+    etas = np.linspace(-1,5,31)
 
-  fig, ax = plt.subplots(1,2, figsize=(10,4))  
-  etas = np.linspace(-1,5,31)
+    plot_etas_compare(
+        gamble_data_additive,
+        results_a,
+        fft_names_a,
+        etas,
+        "additive",
+        ax=ax[0],
+        runs=1,
+        random_seed=42,
+        )
     
-  plot_etas_compare(
-      gamble_data_additive,
-      results_a,
-      fft_names_a,
-      etas,
-      "additive",
-      ax=ax[0],
-      runs=1,
-      random_seed=42,
-      )
+    plot_etas_compare(
+        gamble_data_multiplicative,
+        results_m,
+        fft_names_m,
+        etas,
+        "multiplicative",
+        ax=ax[1],
+        runs=1,
+        random_seed=42,
+        )
+      
+    fig.savefig(f"{REMOTE_DRIVE}/{config['run_id']}/4-visualizations/fig4.png", dpi=300, bbox_inches="tight")
+    logging.info(f"Figure 4 created and saved.")
   
-  plot_etas_compare(
-      gamble_data_multiplicative,
-      results_m,
-      fft_names_m,
-      etas,
-      "multiplicative",
-      ax=ax[1],
-      runs=1,
-      random_seed=42,
-      )
-    
-  fig.savefig(f"{REMOTE_DRIVE}/{config['run_id']}/4-visualizations/fig4.png", dpi=300, bbox_inches="tight")
-  
+
   return 0
 
 
