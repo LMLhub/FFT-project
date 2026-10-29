@@ -523,7 +523,7 @@ def plot_participant_accuracy_gamma_scatter(
     ax=None,
     title=None,
     runs=1,
-):
+    ):
     """
     Plot accuracy and average chosen growth rate separately by participant.
 
@@ -593,18 +593,61 @@ def plot_participant_accuracy_comparison(
     runs=1,
     x_label=None,
     y_label=None,
-):
-    """Plot two decision accuracies for every participant and FFT."""
+    aggregate = False,
+    ):
+    """Plot agreement with two reference strategies for every participant/FFT.
+
+    Parameters
+    ----------
+    results : pandas.DataFrame
+        Trial results with column keys (strategy_id, run_number, field).
+        Each plotted strategy and reference must have a "selected_side" field.
+    fft_ids : iterable of str
+        IDs of the strategies to plot. Each strategy uses a consistent colour.
+    participant_result_id : str
+        Column-group key for the experimental participant data, typically
+        "experiment_a" (additive) or "experiment_m" (multiplicative), as returned
+        by run_dynamic_experiment. This is not an individual participant ID:
+        results[(participant_result_id, runs, "participant_id")] contains the
+        individual IDs used to group trial rows.
+    x_reference_id : str
+        Strategy ID whose selected sides are compared with each plotted
+        strategy to calculate x-axis agreement.
+    y_reference_id : str
+        Strategy ID whose selected sides are compared with each plotted
+        strategy to calculate y-axis agreement.
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw on. If omitted, create a new figure and axes.
+    title : str, optional
+        Plot title. Defaults to "Participant accuracy comparison".
+    runs : int, default 1
+        Run number in the results column keys; runs are not averaged.
+    x_label : str, optional
+        X-axis label. Defaults to "Accuracy against {x_reference_id}".
+    y_label : str, optional
+        Y-axis label. Defaults to "Accuracy against {y_reference_id}".
+    aggregate: boolean, optional
+        If true, scatter is for aggregate results instead of individual level
+    
+    Returns
+    -------
+    matplotlib.axes.Axes
+        Axes containing one point per participant and plotted strategy.
+        Each coordinate is the fraction of matching selected sides, excluding
+        rows where either choice is missing for that reference comparison.
+    """
     import matplotlib.pyplot as plt
 
     if ax is None:
         _, ax = plt.subplots()
 
+    # Retrieve the unique participant ids from the results data
     participant_ids = results[(participant_result_id, runs, "participant_id")]
     participants = participant_ids.dropna().unique()
     colours = plt.get_cmap("tab10")
 
     for fft_number, fft_id in enumerate(fft_ids):
+        aggregate_accuracies = []
         for participant_number, participant_id in enumerate(participants):
             participant_results = results.loc[participant_ids == participant_id]
             fft_choices = participant_results[(fft_id, runs, "selected_side")]
@@ -618,25 +661,41 @@ def plot_participant_accuracy_comparison(
                 accuracies.append(
                     (fft_choices[valid_rows] == reference_choices[valid_rows]).mean()
                 )
-
+                    
+            if aggregate == True:
+                aggregate_accuracies.append(accuracies)
+            else:
+                ax.scatter(
+                    accuracies[0],
+                    accuracies[1],
+                    color=colours(fft_number % 10),
+                    marker=".",
+                    alpha=0.75,
+                    label=fft_id if participant_number == 0 else None,
+                )
+            
+        if aggregate == True:
+            aggregate_accuracies_mean = np.mean(aggregate_accuracies, axis = 0)
             ax.scatter(
-                accuracies[0],
-                accuracies[1],
+                aggregate_accuracies_mean[0],
+                aggregate_accuracies_mean[1],
                 color=colours(fft_number % 10),
-                marker=".",
-                alpha=0.75,
-                label=fft_id if participant_number == 0 else None,
-            )
+                marker="+",
+                s = 50,
+                alpha=1,
+                label=fft_id,
+                )    
 
     ax.set_xlabel(x_label or f"Accuracy against {x_reference_id}")
     ax.set_ylabel(y_label or f"Accuracy against {y_reference_id}")
     ax.set_title(title or "Participant accuracy comparison")
-    ax.legend(
+    if aggregate == False:
+        ax.legend(
         loc="upper center",
         bbox_to_anchor=(0.5, -0.18),
         fontsize=7,
         ncol=2,
-    )
+        )
     return ax
 
 
@@ -895,3 +954,36 @@ def plot_rank_fraction_accuracy(
         ncol=len(rank_cutoffs),
     )
     return ax
+
+def accuracy_table(experiment, fft_ids, run_no, choice_name):
+    results = []
+    for fft_id in fft_ids:
+        accuracies = experiment.accuracy(fft_id,
+                    "fft_gr",
+                    run_no,
+                    importance_weighted = False)
+        acc_min = np.min(accuracies)
+        acc_max = np.max(accuracies)
+        acc_mean = np.mean(accuracies)
+
+        accuracies_weighted = experiment.accuracy(fft_id,
+                            "fft_gr",
+                            run_no,
+                            importance_weighted = True)
+        wacc_min = np.min(accuracies_weighted)
+        wacc_max = np.max(accuracies_weighted)
+        wacc_mean = np.mean(accuracies_weighted)
+
+        accuracies_choices = experiment.accuracy(fft_id,
+                            choice_name,
+                            run_no,
+                            importance_weighted = True)
+
+        cacc_min = np.min(accuracies_choices)
+        cacc_max = np.max(accuracies_choices)
+        cacc_mean = np.mean(accuracies_choices)
+                
+        results.append([fft_id, acc_min, acc_max, acc_mean, wacc_min, wacc_max, wacc_mean, cacc_min, cacc_max, cacc_mean ])
+    return results
+
+

@@ -25,7 +25,7 @@ from fft_project.experiment_class import Experiment
 from fft_project.simulation_gamble_data import simulate_gamble_data
 from fft_project.create_cues_ffts import create_cues_ffts
 from fft_project.prepare_experimental_data import prepare_experimental_data
-from fft_project.analysis_compare import plot_etas_compare, plot_participant_accuracy_comparison
+from fft_project.analysis_compare import plot_etas_compare, plot_participant_accuracy_comparison, accuracy_table
 
 
 def main():
@@ -172,21 +172,75 @@ def main():
   #---------- Set up and run experiments ----------------------------
   fft_names_a, results_a, experiment_a = create_and_run_additive_experiment("exp-a")
   fft_names_m, results_m, experiment_m = create_and_run_multiplicative_experiment("exp-m")
-
+  experiment_a.results = results_a
+  experiment_m.results = results_m
+  
   #----------------- Fig 2 --------------------------
   # This code plots accuracy against choices vs accuracy against growth rate optimality
   if fig2 == True:
     logging.info(f"Figure 2 in process...") 
-        
-    plot_participant_accuracy_comparison()
+    # Compare experimental-choice accuracy directly with growth-rate accuracy.
+    # print(results_a["fft_gr",1, "selected_side" ])
+    fig2, axes = plt.subplots(1, 2, figsize=(10, 6), sharex= True, sharey= True)
     
+    axes[0] = plot_participant_accuracy_comparison(
+                results_a,
+                FFT_NAMES_A,
+                "experiment_a",
+                "experiment_a",
+                "fft_gr",
+                ax=axes[0],
+                title=f"FFT accuracy - Additive dynamics",
+                x_label="Experimental data",
+                y_label="Growth-rate maximisation",
+                )
+
+    # Multiplicative
+    axes[1] = plot_participant_accuracy_comparison(
+                results_m,
+                FFT_NAMES_M,
+                "experiment_m",
+                "experiment_m",
+                "fft_gr",
+                ax=axes[1],
+                title=f"FFT accuracy - Multiplicative dynamics",
+                x_label="Experimental data",
+                y_label="Growth-rate maximisation",
+                )
+    
+    # Save and return the additional accuracy-against-accuracy figure.
+    fig2.subplots_adjust(wspace=0.4, hspace=0.4, bottom=0.28)        
+    fig2.savefig(f"{REMOTE_DRIVE}/{config['run_id']}/4-visualizations/fig2.png", dpi=300, bbox_inches="tight")
+    logging.info(f"Figure 2 created and saved.") 
+
+  #----------------- Fig 3 --------------------------
+  # This code plots accuracy against growth rate optimality vs importance weighted accuracy 
+  if fig3 == True:
+    logging.info("Table (replacing figure 3) in progress...")
+
+    colnames = ["fft_id", "acc_min", "acc_max", "acc_mean", "wacc_min", "wacc_max", "wacc_mean", "cacc_min", "cacc_max", "cacc_mean"]
+    # Additive
+    table_a = pd.DataFrame(accuracy_table(experiment_a, fft_names_a, 1, "experiment_a"), columns=colnames)
+    table_a["Dynamic"] = "additive"
+
+    
+    table_m = pd.DataFrame(accuracy_table(experiment_m, fft_names_m, 1, "experiment_m"), columns=colnames)
+    table_m["Dynamic"] = "multiplicative"
+
+    table = pd.concat([table_a, table_m], axis=0)
+    table = table.round(2)
+
+    table.to_csv(f"{REMOTE_DRIVE}/{config['run_id']}/3-analysis/accuracy-table.csv", index=False)
+
+
+
   #----------------- Fig 4 --------------------------
   
   # This code creates the eta profile plot
   if fig4 == True:
     logging.info(f"Figure 4 in process...") 
         
-    fig, ax = plt.subplots(1,2, figsize=(10,4))  
+    fig, ax = plt.subplots(1,2, figsize=(6,4))  
     etas = np.linspace(-1,5,31)
 
     plot_etas_compare(
