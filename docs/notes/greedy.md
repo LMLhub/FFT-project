@@ -61,13 +61,13 @@ Unlike a conventional FFT, only the abstention branch continues. The structure c
 At stage $k$, the **residual dataset** $S_k$ contains the instances not decided by any preceding rule. Initially,
 
 $$
-S_1=\{1,\ldots,N\}.
+S_1=\lbrace 1,\ldots,N\rbrace .
 $$
 
 After applying rule $j_k$,
 
 $$
-S_{k+1}=\{i\in S_k:X_{i,j_k}=0\}.
+S_{k+1}=\lbrace i\in S_k:X_{i,j_k}=0\rbrace .
 $$
 
 Each residual dataset will be represented by a Boolean mask of length $N$.
