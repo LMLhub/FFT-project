@@ -23,7 +23,7 @@ Individual rules may be highly accurate but choose for relatively few instances,
 Represent the data by a prediction matrix
 
 $$
-X\in \left\{-1,0,1\right\}^{N\times M},
+X\in \lbrace-1,0,1\rbrace^{N\times M},
 $$
 
 with encoding
@@ -39,7 +39,7 @@ $$
 The correct labels are stored in
 
 $$
-y\in\left\{1,-1\right\}^{N}.
+y\in\lbrace 1,-1\rbrace^{N}.
 $$
 
 The decision rules are fixed: the algorithm does not learn or modify them. It searches for effective combinations and orderings.
