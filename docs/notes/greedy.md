@@ -7,7 +7,7 @@ We wish to construct short, interpretable sequences of cue-based decision rules 
 We have:
 
 - $N$ instances $(A, B)$, each with a known "correct" choice between the two options, $A$ or $B$.
-- $M$ fixed cue-based decision rules, each of which can output $A$, $B$, or abstain for any choice instance $(A, B)$. The implementation of cue-based decision rules ensures symmetry with respect to $ A \leftrightarrow B$.
+- $M$ fixed cue-based decision rules, each of which can output $A$, $B$, or abstain for any choice instance $(A, B)$. The implementation of cue-based decision rules ensures symmetry with respect to $A \leftrightarrow B$.
 - A maximum sequence length $K$, initially expected to be 3 or 4.
 
 Our objective is to identify sequences of rules that achieve a desirable balance between decision accuracy and coverage.
@@ -23,23 +23,23 @@ Individual rules may be highly accurate but choose for relatively few instances,
 Represent the data by a prediction matrix
 
 $$
-X\in\{-1,0,1\}^{N\times M},
+X\in \left\{-1,0,1\right\}^{N\times M},
 $$
 
 with encoding
 
 $$
 X_{ij}=\begin{cases}
-0 & \text{rule }j\text{ chooses A},\\
-1 & \text{rule }j\text{ chooses B},\\
--1 & \text{rule }j\text{ abstains}.
+1 & \text{rule }j\text{ chooses A},\\
+0 & \text{rule }j\text{ abstains},\\
+-1 & \text{rule }j\text{ chooses B}.
 \end{cases}
 $$
 
 The correct labels are stored in
 
 $$
-y\in\{0,1\}^{N}.
+y\in\left\{1,-1\right\}^{N}.
 $$
 
 The decision rules are fixed: the algorithm does not learn or modify them. It searches for effective combinations and orderings.
@@ -67,7 +67,7 @@ $$
 After applying rule $j_k$,
 
 $$
-S_{k+1}=\{i\in S_k:X_{i,j_k}=-1\}.
+S_{k+1}=\{i\in S_k:X_{i,j_k}=0\}.
 $$
 
 Each residual dataset will be represented by a Boolean mask of length $N$.
@@ -185,13 +185,13 @@ For example:
 ```python
 def extend_state(state: SearchState, feature: int, dataset: Dataset) -> SearchState:
     predictions = dataset.predictions[:, feature]
-    decided = state.remaining & (predictions != -1)
-    correct = np.count_nonzero(decideded & (predictions == dataset.labels))
+    decided = state.remaining & (predictions != 0)
+    correct = np.count_nonzero(decided & (predictions == dataset.labels))
     incorrect = np.count_nonzero(decided) - correct
 
     return SearchState(
         sequence=state.sequence + (feature,),
-        remaining=state.remaining & (predictions == -1),
+        remaining=state.remaining & (predictions == 0),
         correct=state.correct + int(correct),
         incorrect=state.incorrect + int(incorrect),
     )
@@ -245,7 +245,7 @@ located in ```src/fft_project/sequential_decision_rules```:
 | `evaluation.py` | Global scoring and comparison of sequences |
 
 This should allow the code to be separated out into a more general package later
-if it turns out puit to be useful.
+if it turns out out to be useful.
 
 Provisional interfaces:
 
