@@ -31,10 +31,10 @@ We have implemented artificial agents with different decision heuristics based o
         Frugality-accuracy tradeoff
         Correct eta (profile rather than estimation dues to "well-known" issues)
 - Results
-    - Figure: Frugality-accuracy trade-off (Colm)
-    - Figure: Accuracy against choices vs accuracy against growth-rate optimality (Emilie)
-    - Figure: Importance-weighted accuracy (Emilie)
-    - Figure: eta-profiles (Emilie)
+    - Figure 1: Frugality-accuracy trade-off (Colm)
+    - Figure 2: Accuracy against choices vs accuracy against growth-rate optimality (Emilie)
+    - Figure 3: Importance-weighted accuracy (Emilie)
+    - Figure 4: eta-profiles (Emilie)
 - Discussion
     - Did we select the right cues?
     - Did the linearity in ranking impact results?
