@@ -222,7 +222,6 @@ def main():
     # Additive
     table_a = pd.DataFrame(accuracy_table(experiment_a, fft_names_a, 1, "experiment_a"), columns=colnames)
     table_a["Dynamic"] = "additive"
-
     
     table_m = pd.DataFrame(accuracy_table(experiment_m, fft_names_m, 1, "experiment_m"), columns=colnames)
     table_m["Dynamic"] = "multiplicative"
@@ -231,9 +230,21 @@ def main():
     table = table.round(2)
 
     table.to_csv(f"{REMOTE_DRIVE}/{config['run_id']}/3-analysis/accuracy-table.csv", index=False)
+    logging.info("Table (replacing figure 3) created and saved as CSV.")
+    
+    table_new = pd.DataFrame({column: table.apply(
+        lambda row: (
+            f"{row[f'{column}_mean']} "
+            f"[{row[f'{column}_min']} - {row[f'{column}_max']}]"
+            ), axis=1,
+            ) for column in ["acc", "wacc", "cacc"] }
+            )
+    table_new.insert(0, 'FFT', table['fft_id'])
+    table_new.insert(0, 'dynamic', table['Dynamic'])
 
-
-
+    table_new.to_latex("docs/manuscript/tables/accuracies.tex", index=False, escape=True)
+    logging.info("Latex table (replacing figure 3) created and saved.")
+        
   #----------------- Fig 4 --------------------------
   
   # This code creates the eta profile plot

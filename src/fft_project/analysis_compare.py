@@ -977,7 +977,7 @@ def accuracy_table(experiment, fft_ids, run_no, choice_name):
         accuracies_choices = experiment.accuracy(fft_id,
                             choice_name,
                             run_no,
-                            importance_weighted = True)
+                            importance_weighted = False)
 
         cacc_min = np.min(accuracies_choices)
         cacc_max = np.max(accuracies_choices)
