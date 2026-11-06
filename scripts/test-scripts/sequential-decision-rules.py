@@ -8,6 +8,10 @@ from fft_project.config import setup_run_id, setup_output_folders, save_config
 from fft_project.simulation_gamble_data import simulate_gamble_data
 from fft_project.create_cues_ffts import create_cues2
 from fft_project.cue_class import Cue
+from fft_project.sequential_decision_rules.data import Dataset
+from fft_project.sequential_decision_rules.metrics import evaluate_features
+from fft_project.sequential_decision_rules.search import SearchState, validate_state
+from fft_project.sequential_decision_rules.pareto import pareto_frontier
 
 
 logger = logging.getLogger(__name__)
@@ -51,6 +55,7 @@ def build_prediction_matrix_and_labels(
   # Remove GR-max from the cues to be considered since this will be used to
   # generate the labels
   cues_to_consider.remove("GR-max")
+  cues_to_consider.remove("GR-min-minus")
   n_rows = len(gamble_data)
   n_cues = len(cues_to_consider)
   logger.info(f"Number of training instances = {n_rows}")
@@ -75,10 +80,11 @@ def build_prediction_matrix_and_labels(
       y[i] = -1
     else:
       raise RuntimeError(f"Reference cue {cue.id} failed to assign a choice for row {i}.")
-
+    cue_identifiers = {}
     # Generate the row i of the prediction matrix, x
     for j, cue_label in enumerate(cues_to_consider):
       cue = all_cues[cue_label]
+      cue_identifiers[j] = cue.id
       # Read what additional arguments the current cue requires
       extra_arg_names = cue.required_args[4:] if getattr(cue, "required_args", None) else []
       extra_args = {}
@@ -102,7 +108,7 @@ def build_prediction_matrix_and_labels(
       else:
         x[i, j] = 0
 
-  return x, y
+  return x, y, cue_identifiers
 
 
 def simulate_dataset(config):
@@ -177,7 +183,7 @@ def main():
 
   all_cues = set_up_cues(config)
 
-  X, Y = build_prediction_matrix_and_labels(
+  X, Y, cue_identifiers = build_prediction_matrix_and_labels(
     gamble_data,
     all_cues,
     cue_args,
@@ -185,11 +191,75 @@ def main():
     priority_heuristic_tolerance_no_loss,
   )
 
-  print(Y)
-  print(X)
+  # Start sequential decision rule evaluation from here
+  dataset = Dataset(X, Y)
+  print(f"{dataset.N} instances, {dataset.M} features")
+  initial_state = SearchState(
+    sequence=(),
+    remaining=np.ones(dataset.N, dtype=bool)
+  )
+  validate_state(initial_state, dataset)
+  metrics = evaluate_features(
+    dataset,
+    initial_state.remaining
+  )
 
+  print(metrics)
 
+  frontier = pareto_frontier(metrics)
 
+  print(f"Total features: {len(metrics)}")
+  print(f"Pareto-optimal features: {len(frontier)}")
+
+  print(frontier)
+
+  import matplotlib.pyplot as plt
+
+  fig, ax = plt.subplots(figsize=(7, 5))
+
+  ax.scatter(
+      metrics["coverage"],
+      metrics["accuracy"],
+      alpha=0.4,
+      label="All features"
+  )
+  for idx, row in metrics.iterrows():
+    ax.annotate(
+      cue_identifiers[idx],
+      (row["coverage"], row["accuracy"]),
+      xytext=(4, 4),
+      textcoords="offset points",
+      fontsize=8,
+      alpha=0.8,
+    )
+
+  ax.plot(
+      frontier["coverage"],
+      frontier["accuracy"],
+      "o-",
+      label="Pareto frontier"
+  )
+
+  ax.set_xlabel("Coverage")
+  ax.set_ylabel("Accuracy")
+  ax.set_title("Feature performance and Pareto frontier")
+  ax.set_xlim(0, 1.05)
+  ax.set_ylim(0, 1.05)
+  ax.grid(alpha=0.3)
+  ax.legend()
+
+  plt.show()
+
+  # Test residual
+  remaining = dataset.X[:, 2] == 0
+
+  residual_metrics = evaluate_features(
+      dataset,
+      remaining
+  )
+
+  print(f"Remaining instances: {remaining.sum()}")
+  print(residual_metrics)
 
   return 0
 
