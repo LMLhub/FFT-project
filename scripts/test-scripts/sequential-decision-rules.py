@@ -10,7 +10,7 @@ from fft_project.create_cues_ffts import create_cues2
 from fft_project.cue_class import Cue
 from fft_project.sequential_decision_rules.data import Dataset
 from fft_project.sequential_decision_rules.metrics import evaluate_features
-from fft_project.sequential_decision_rules.search import SearchState, validate_state
+from fft_project.sequential_decision_rules.search import SearchState, validate_state, extend_state
 from fft_project.sequential_decision_rules.pareto import pareto_frontier
 
 
@@ -250,17 +250,61 @@ def main():
 
   plt.show()
 
-  # Test residual
-  remaining = dataset.X[:, 2] == 0
+  feature = int(frontier.iloc[0]["feature"])
 
-  residual_metrics = evaluate_features(
-      dataset,
-      remaining
+  child = extend_state(
+    initial_state,
+    feature,
+    dataset
   )
 
-  print(f"Remaining instances: {remaining.sum()}")
-  print(residual_metrics)
+  print("Selected feature:", feature)
+  print("Sequence:", child.sequence)
+  print("Correct:", child.correct)
+  print("Incorrect:", child.incorrect)
+  print("Remaining:", child.remaining.sum())
 
+  row = metrics.loc[metrics["feature"] == feature].iloc[0]
+
+  assert child.correct == row["correct"]
+  assert child.incorrect == row["incorrect"]
+  assert child.remaining.sum() == dataset.N - row["classified"]
+
+  assert initial_state.sequence == ()
+  assert initial_state.remaining.all()
+  assert initial_state.correct == 0
+  assert initial_state.incorrect == 0
+
+  validate_state(child, dataset)
+
+  residual_metrics = evaluate_features(
+    dataset,
+    child.remaining
+  )
+
+  residual_frontier = pareto_frontier(
+    residual_metrics[
+        ~residual_metrics["feature"].isin(child.sequence)
+    ]
+  )
+  feature2 = int(residual_frontier.iloc[0]["feature"])
+
+  grandchild = extend_state(
+    child,
+    feature2,
+    dataset
+  )
+
+  print("Selected feature:", feature2)
+  print("Sequence:", grandchild.sequence)
+  print("Correct:", grandchild.correct)
+  print("Incorrect:", grandchild.incorrect)
+  print("Remaining:", grandchild.remaining.sum())
+  validate_state(grandchild, dataset)
+
+  assert grandchild.remaining.sum() <= child.remaining.sum()
+  assert grandchild.correct >= child.correct
+  assert grandchild.incorrect >= child.incorrect
   return 0
 
 
